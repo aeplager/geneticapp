@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LLM Chat</title>
+</head>
+<body>
+    <h1>LLM Chat</h1>
+    <form id="chat-form">
+        <label for="model">Model:</label>
+        <select id="model" name="model">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+            <option value="mistral">Mistral</option>
+            <option value="llama">LLama</option>
+            <option value="perplexity">Perplexity</option>
+        </select>
+        <br/>
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" rows="4" cols="50"></textarea>
+        <br/>
+        <button type="submit">Send</button>
+    </form>
+    <pre id="response"></pre>
+    <script>
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const model = document.getElementById('model').value;
+            const message = document.getElementById('message').value;
+            const resp = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: 'web', model, message })
+            });
+            const data = await resp.json();
+            document.getElementById('response').textContent = data.response;
+        });
+    </script>
+</body>
+</html>

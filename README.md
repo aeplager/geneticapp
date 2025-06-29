@@ -28,6 +28,9 @@ python app/app.py
 
 The server listens on port `5000`.
 
+Open `http://localhost:5000/` in a browser to use the simple web interface. It
+lets you choose a model from a dropdown and chat with it directly.
+
 ### Docker
 
 Build and run using Docker:

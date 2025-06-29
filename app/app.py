@@ -1,10 +1,16 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import os
 
 app = Flask(__name__)
 
 # in-memory storage of conversations by session_id
 conversations = {}
+
+
+@app.route('/')
+def index():
+    """Simple web UI for chatting with different models."""
+    return render_template('index.html')
 
 
 def call_model(model, messages):
