@@ -1,4 +1,4 @@
 flask
-openai
+openai>=1.0
 anthropic
 mistralai

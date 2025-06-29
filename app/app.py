@@ -16,10 +16,10 @@ def index():
 def call_model(model, messages):
     """Dispatch call to different LLM providers."""
     if model in ("chatgpt", "gpt-3.5-turbo", "openai"):
-        import openai
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        resp = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-        return resp.choices[0].message["content"]
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        return resp.choices[0].message.content
     elif model == "claude":
         import anthropic
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -35,17 +35,15 @@ def call_model(model, messages):
         resp = client.chat(model="mistral-tiny", messages=messages)
         return resp.choices[0].message.content
     elif model == "llama":
-        import openai
-        openai.api_base = os.getenv("LLAMA_API_BASE")
-        openai.api_key = os.getenv("LLAMA_API_KEY")
-        resp = openai.ChatCompletion.create(model="llama", messages=messages)
-        return resp.choices[0].message["content"]
+        from openai import OpenAI
+        client = OpenAI(base_url=os.getenv("LLAMA_API_BASE"), api_key=os.getenv("LLAMA_API_KEY"))
+        resp = client.chat.completions.create(model="llama", messages=messages)
+        return resp.choices[0].message.content
     elif model == "perplexity":
-        import openai
-        openai.api_base = os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai")
-        openai.api_key = os.getenv("PERPLEXITY_API_KEY")
-        resp = openai.ChatCompletion.create(model="pplx-70b-online", messages=messages)
-        return resp.choices[0].message["content"]
+        from openai import OpenAI
+        client = OpenAI(base_url=os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai"), api_key=os.getenv("PERPLEXITY_API_KEY"))
+        resp = client.chat.completions.create(model="pplx-70b-online", messages=messages)
+        return resp.choices[0].message.content
     else:
         return "Unknown model"
 
