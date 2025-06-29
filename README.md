@@ -37,7 +37,18 @@ Build and run using Docker:
 
 ```bash
 docker build -t llm-chat .
-docker run -p 5000:5000 -e OPENAI_API_KEY=... llm-chat
+docker run -p 5000:5000 --env-file .env llm-chat
+```
+
+Place your API keys in a `.env` file in the project root with values like:
+
+```
+OPENAI_API_KEY=...
+ANTHROPIC_API_KEY=...
+MISTRAL_API_KEY=...
+LLAMA_API_BASE=...
+LLAMA_API_KEY=...
+PERPLEXITY_API_KEY=...
 ```
 
 ## Endpoints
