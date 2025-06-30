@@ -42,9 +42,12 @@ def call_model(provider: str, messages, model_name: str):
         )
         return resp.content[0].text
     elif provider == "mistral":
-        from mistralai.client import MistralClient
-        client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
-        resp = client.chat(model=model_name, messages=messages)
+        from openai import OpenAI
+        client = OpenAI(
+            base_url=os.getenv("MISTRAL_API_BASE", "https://api.mistral.ai/v1"),
+            api_key=os.getenv("MISTRAL_API_KEY"),
+        )
+        resp = client.chat.completions.create(model=model_name, messages=messages)
         return resp.choices[0].message.content
     elif provider == "llama":
         from openai import OpenAI
