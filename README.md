@@ -30,7 +30,8 @@ python app/app.py
 The server listens on port `5000`.
 
 Open `http://localhost:5000/` in a browser to use the simple web interface. It
-lets you choose a model from a dropdown and chat with it directly.
+lets you choose a provider and then select one of the available models defined
+in `app/data/models.json`.
 
 ### Docker
 
@@ -55,10 +56,11 @@ PERPLEXITY_MODEL=pplx-70b-online
 
 ## Endpoints
 
+- `GET /models` – return the available models for each provider.
 - `POST /chat` – send a chat message.
 - `POST /summarize` – summarize a block of text.
 - `GET /history` – retrieve the last 20 prompt/response pairs for a session.
 
-Both endpoints accept JSON with at least `session_id`, `model`, and the user
-content. History for a session is stored in memory and automatically included
-in subsequent calls for that session.
+`/chat` and `/summarize` accept JSON with `session_id`, `provider` and
+`model_name` along with the user content. History for a session is stored in
+memory and automatically included in subsequent calls for that session.

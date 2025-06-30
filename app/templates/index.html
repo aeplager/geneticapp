@@ -8,14 +8,10 @@
     <img src="{{ url_for('static', filename='QKSS AI LinkedIn Banner v3.png') }}" alt="QKSS AI banner" style="max-width:100%;height:auto;" />
     <h1>LLM Chat</h1>
     <form id="chat-form">
+        <label for="llm">LLM:</label>
+        <select id="llm" name="llm"></select>
         <label for="model">Model:</label>
-        <select id="model" name="model">
-            <option value="chatgpt">ChatGPT</option>
-            <option value="claude">Claude</option>
-            <option value="mistral">Mistral</option>
-            <option value="llama">LLama</option>
-            <option value="perplexity">Perplexity</option>
-        </select>
+        <select id="model" name="model"></select>
         <br/>
         <label for="message">Message:</label>
         <textarea id="message" name="message" rows="4" cols="50"></textarea>
@@ -26,19 +22,39 @@
     <h2>History (last 20 prompts and responses)</h2>
     <pre id="history"></pre>
     <script>
+        let models = {};
+
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const provider = document.getElementById('llm').value;
             const model = document.getElementById('model').value;
             const message = document.getElementById('message').value;
             const resp = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: 'web', model, message })
+                body: JSON.stringify({ session_id: 'web', provider, model_name: model, message })
             });
             const data = await resp.json();
             document.getElementById('response').textContent = data.response;
             await loadHistory();
         });
+
+        async function loadModels() {
+            const resp = await fetch('/models');
+            models = await resp.json();
+            const llmSelect = document.getElementById('llm');
+            llmSelect.innerHTML = Object.keys(models).map(m => `<option value="${m}">${m}</option>`).join('');
+            updateModelOptions();
+        }
+
+        function updateModelOptions() {
+            const llm = document.getElementById('llm').value;
+            const modelSelect = document.getElementById('model');
+            const opts = models[llm] || [];
+            modelSelect.innerHTML = opts.map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        document.getElementById('llm').addEventListener('change', updateModelOptions);
 
         async function loadHistory() {
             const resp = await fetch('/history?session_id=web');
@@ -47,7 +63,8 @@
             document.getElementById('history').textContent = lines;
         }
 
-        // load existing history on page load
+        // load existing history and model list on page load
+        loadModels();
         loadHistory();
     </script>
 </body>
