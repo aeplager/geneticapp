@@ -1,0 +1,9 @@
+{% macro bootstrap_dropdown(name, placeholder, icon='bi-list') -%}
+<div class="dropdown my-2">
+  <button class="btn btn-light border dropdown-toggle w-100 text-start" type="button" id="{{ name }}-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="{{ icon }} me-2"></i><span id="{{ name }}-label">{{ placeholder }}</span>
+  </button>
+  <ul class="dropdown-menu w-100" aria-labelledby="{{ name }}-toggle" id="{{ name }}-menu"></ul>
+  <input type="hidden" name="{{ name }}" id="{{ name }}">
+</div>
+{%- endmacro %}
