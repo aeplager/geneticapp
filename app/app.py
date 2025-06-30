@@ -41,8 +41,12 @@ def call_model(model, messages):
         return resp.choices[0].message.content
     elif model == "perplexity":
         from openai import OpenAI
-        client = OpenAI(base_url=os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai"), api_key=os.getenv("PERPLEXITY_API_KEY"))
-        resp = client.chat.completions.create(model="pplx-70b-online", messages=messages)
+        client = OpenAI(
+            base_url=os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai"),
+            api_key=os.getenv("PERPLEXITY_API_KEY"),
+        )
+        model_name = os.getenv("PERPLEXITY_MODEL", "llama-3-sonar-small-32k-online")
+        resp = client.chat.completions.create(model=model_name, messages=messages)
         return resp.choices[0].message.content
     else:
         return "Unknown model"
