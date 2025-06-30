@@ -3,5 +3,5 @@
   "claude": ["claude-3-haiku-20240307", "claude-3-opus-20240229"],
   "mistral": ["mistral-tiny", "mistral-small"],
   "llama": ["llama", "llama-3"],
-  "perplexity": ["llama-3.1-sonar-small-32k-online", "llama-3.1-sonar-large-128k-online"]
+  "perplexity": ["sonar", "sonar-pro", "sonar-reasoning"]
 }
