@@ -43,15 +43,25 @@
         e.preventDefault();
         const provider = document.getElementById('llm').value;
         const model = document.getElementById('model').value;
-        const message = document.getElementById('message').value;
+        const messageBox = document.getElementById('message');
+        const message = messageBox.value;
+
+        // clear the textarea and show a processing indicator
+        messageBox.value = '';
+        messageBox.placeholder = 'Processing the message...';
+        document.getElementById('status').textContent = 'Processing the message...';
+        document.getElementById('response').textContent = '';
+
         const resp = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: 'web', provider, model_name: model, message })
         });
+
         const data = await resp.json();
         document.getElementById('response').innerHTML = marked.parse(data.response);
         document.getElementById('status').textContent = 'API response received.';
+        messageBox.placeholder = '';
         await loadHistory();
     });
 
