@@ -45,7 +45,7 @@ def call_model(model, messages):
             base_url=os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai"),
             api_key=os.getenv("PERPLEXITY_API_KEY"),
         )
-        model_name = os.getenv("PERPLEXITY_MODEL", "pplx-70b-online")
+        model_name = os.getenv("PERPLEXITY_MODEL", "llama-3.1-sonar-large-128k-online")
         try:
             resp = client.chat.completions.create(model=model_name, messages=messages)
             return resp.choices[0].message.content
