@@ -57,6 +57,7 @@ PERPLEXITY_MODEL=pplx-70b-online
 
 - `POST /chat` – send a chat message.
 - `POST /summarize` – summarize a block of text.
+- `GET /history` – retrieve the last 20 prompt/response pairs for a session.
 
 Both endpoints accept JSON with at least `session_id`, `model`, and the user
 content. History for a session is stored in memory and automatically included
