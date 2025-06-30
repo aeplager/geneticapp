@@ -22,6 +22,8 @@
         <button type="submit">Send</button>
     </form>
     <pre id="response"></pre>
+    <h2>History (last 20 prompts and responses)</h2>
+    <pre id="history"></pre>
     <script>
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -34,7 +36,18 @@
             });
             const data = await resp.json();
             document.getElementById('response').textContent = data.response;
+            await loadHistory();
         });
+
+        async function loadHistory() {
+            const resp = await fetch('/history?session_id=web');
+            const data = await resp.json();
+            const lines = data.history.map(pair => `User: ${pair.prompt}\nAssistant: ${pair.response}`).join('\n\n');
+            document.getElementById('history').textContent = lines;
+        }
+
+        // load existing history on page load
+        loadHistory();
     </script>
 </body>
 </html>

@@ -68,7 +68,7 @@ def chat():
     response_content = call_model(model, history)
 
     history.append({'role': 'assistant', 'content': response_content})
-    return jsonify({'response': response_content, 'history': history})
+    return jsonify({'response': response_content, 'history': history[-40:]})
 
 
 @app.route('/summarize', methods=['POST'])
@@ -87,6 +87,23 @@ def summarize():
 
     history.append({'role': 'assistant', 'content': response_content})
     return jsonify({'summary': response_content, 'history': history})
+
+
+@app.route('/history', methods=['GET'])
+def get_history():
+    """Return the last 20 prompt/response pairs for a session."""
+    session_id = request.args.get('session_id', 'default')
+    history = conversations.get(session_id, [])
+    # Grab the last 40 messages (20 pairs)
+    recent = history[-40:]
+    pairs = []
+    for i in range(0, len(recent), 2):
+        if i + 1 < len(recent):
+            pairs.append({
+                'prompt': recent[i]['content'],
+                'response': recent[i + 1]['content']
+            })
+    return jsonify({'history': pairs})
 
 
 if __name__ == '__main__':
