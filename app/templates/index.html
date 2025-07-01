@@ -22,6 +22,10 @@
             <textarea id="message" name="message" rows="4" class="form-control"></textarea>
         </div>
         <div>
+            <label for="file" class="form-label">Upload Files (optional)</label>
+            <input type="file" id="file" name="files" multiple class="form-control" />
+        </div>
+        <div>
             <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill me-1"></i>Send</button>
         </div>
     </form>
@@ -38,6 +42,7 @@
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const messageBox = document.getElementById('message');
+        const fileInput = document.getElementById('file');
         const message = messageBox.value;
         const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
             .map(cb => cb.value.split('|'));
@@ -54,10 +59,15 @@
             container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
             respDiv.appendChild(container);
             try {
+                const fd = new FormData();
+                fd.append('session_id', 'web');
+                fd.append('provider', provider);
+                fd.append('model_name', model);
+                fd.append('message', message);
+                [...fileInput.files].forEach(f => fd.append('files', f));
                 const resp = await fetch('/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: 'web', provider, model_name: model, message })
+                    body: fd
                 });
                 const data = await resp.json();
                 container.querySelector('div').innerHTML = marked.parse(data.response);
@@ -76,7 +86,8 @@
         const menu = document.getElementById('combo-menu');
         let html = '';
         Object.entries(models).forEach(([provider, list]) => {
-            list.forEach(model => {
+            list.forEach(info => {
+                const model = typeof info === 'string' ? info : info.name;
                 const id = `cmb-${provider}-${model}`.replace(/[^a-z0-9]/gi, '-');
                 html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${provider}|${model}" id="${id}"><label class="form-check-label" for="${id}">${provider} - ${model}</label></div>`;
             });

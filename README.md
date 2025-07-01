@@ -32,8 +32,9 @@ python app/app.py
 The server listens on port `5000`.
 
 Open `http://localhost:5000/` in a browser to use the simple web interface. It
-lets you choose a provider and then select one of the available models defined
-in `app/data/models.json`.
+lets you choose a provider and select from the models defined in
+`app/data/models.json`. Each model entry includes a `multimodal` flag indicating
+whether the model can receive file uploads.
 
 ### Docker
 
@@ -65,5 +66,8 @@ PERPLEXITY_MODEL=pplx-70b-online
 - `GET /history` – retrieve the last 20 prompt/response pairs for a session.
 
 `/chat` and `/summarize` accept JSON with `session_id`, `provider` and
-`model_name` along with the user content. History for a session is stored in
-memory and automatically included in subsequent calls for that session.
+`model_name` along with the user content. The `/chat` endpoint also accepts
+`multipart/form-data` with optional file uploads using the `files` parameter.
+Files are only forwarded when the chosen model is marked as `multimodal` in
+`app/data/models.json`. History for a session is stored in memory and
+automatically included in subsequent calls for that session.

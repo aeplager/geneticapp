@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import os
 import json
+import base64
 
 app = Flask(__name__)
 
@@ -11,6 +12,28 @@ conversations = {}
 MODELS_PATH = os.path.join(os.path.dirname(__file__), "data", "models.json")
 with open(MODELS_PATH, "r") as f:
     AVAILABLE_MODELS = json.load(f)
+
+
+def is_multimodal(provider: str, model_name: str) -> bool:
+    """Return True if the given provider/model supports file input."""
+    models = AVAILABLE_MODELS.get(provider, [])
+    for info in models:
+        if isinstance(info, dict):
+            if info.get("name") == model_name:
+                return info.get("multimodal", False)
+        elif info == model_name:
+            return False
+    return False
+
+
+def default_model(provider: str) -> str:
+    models = AVAILABLE_MODELS.get(provider, [])
+    if models:
+        first = models[0]
+        if isinstance(first, dict):
+            return first.get("name")
+        return first
+    return "gpt-3.5-turbo"
 
 
 @app.route('/')
@@ -25,11 +48,31 @@ def list_models():
     return jsonify(AVAILABLE_MODELS)
 
 
-def call_model(provider: str, messages, model_name: str):
+def call_model(provider: str, messages, model_name: str, files=None):
     """Dispatch call to different LLM providers using a specific model."""
     if provider in ("chatgpt", "gpt-3.5-turbo", "openai"):
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        if files:
+            if not is_multimodal(provider, model_name):
+                return "Model does not support file input"
+
+            user_msg = messages[-1] if messages else {"role": "user", "content": ""}
+            content = []
+            if isinstance(user_msg.get("content"), str):
+                content.append({"type": "text", "text": user_msg["content"]})
+            elif isinstance(user_msg.get("content"), list):
+                content.extend(user_msg["content"])
+
+            for f in files:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+                mime = getattr(f, "mimetype", "application/octet-stream")
+                content.append({"type": "image_url", "image_url": f"data:{mime};base64,{b64}"})
+
+            user_msg["content"] = content
+            messages = messages[:-1] + [user_msg]
+
         resp = client.chat.completions.create(model=model_name, messages=messages)
         return resp.choices[0].message.content
     elif provider == "claude":
@@ -71,18 +114,24 @@ def call_model(provider: str, messages, model_name: str):
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.json or {}
+    files = None
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        data = request.form
+        files = request.files.getlist('files')
+    else:
+        data = request.json or {}
+
     session_id = data.get('session_id', 'default')
     message = data.get('message', '')
     provider = data.get('provider', data.get('model', 'chatgpt'))
     model_name = data.get('model_name', data.get('model'))
     if not model_name:
-        model_name = AVAILABLE_MODELS.get(provider, ["gpt-3.5-turbo"])[0]
+        model_name = default_model(provider)
 
     history = conversations.setdefault(session_id, [])
     history.append({'role': 'user', 'content': message})
 
-    response_content = call_model(provider, history, model_name)
+    response_content = call_model(provider, history, model_name, files=files)
 
     history.append({'role': 'assistant', 'content': response_content})
     return jsonify({'response': response_content, 'history': history[-40:]})
@@ -96,7 +145,7 @@ def summarize():
     provider = data.get('provider', data.get('model', 'chatgpt'))
     model_name = data.get('model_name', data.get('model'))
     if not model_name:
-        model_name = AVAILABLE_MODELS.get(provider, ["gpt-3.5-turbo"])[0]
+        model_name = default_model(provider)
 
     summary_prompt = f"Summarize the following text:\n\n{text}"
 
