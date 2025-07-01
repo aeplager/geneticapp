@@ -68,6 +68,7 @@ PERPLEXITY_MODEL=pplx-70b-online
 `/chat` and `/summarize` accept JSON with `session_id`, `provider` and
 `model_name` along with the user content. The `/chat` endpoint also accepts
 `multipart/form-data` with optional file uploads using the `files` parameter.
-Files are only forwarded when the chosen model is marked as `multimodal` in
+Multiple files can be included by repeating this parameter. Files are only
+forwarded when the chosen model is marked as `multimodal` in
 `app/data/models.json`. History for a session is stored in memory and
 automatically included in subsequent calls for that session.

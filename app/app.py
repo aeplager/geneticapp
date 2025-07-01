@@ -78,6 +78,25 @@ def call_model(provider: str, messages, model_name: str, files=None):
     elif provider == "claude":
         import anthropic
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        if files:
+            if not is_multimodal(provider, model_name):
+                return "Model does not support file input"
+
+            user_msg = messages[-1] if messages else {"role": "user", "content": ""}
+            content = []
+            if isinstance(user_msg.get("content"), str):
+                content.append({"type": "text", "text": user_msg["content"]})
+            elif isinstance(user_msg.get("content"), list):
+                content.extend(user_msg["content"])
+
+            for f in files:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+                mime = getattr(f, "mimetype", "application/octet-stream")
+                content.append({"type": "image", "source": {"type": "base64", "media_type": mime, "data": b64}})
+
+            user_msg["content"] = content
+            messages = messages[:-1] + [user_msg]
+
         resp = client.messages.create(
             model=model_name,
             messages=messages,
