@@ -14,12 +14,8 @@
     <h1 class="mb-4">LLM Chat</h1>
     <form id="chat-form" class="vstack gap-3">
         <div>
-            <label class="form-label">LLM</label>
-            {{ bootstrap_dropdown('llm', 'Select LLM', 'bi-robot') }}
-        </div>
-        <div>
-            <label class="form-label">Model</label>
-            {{ bootstrap_dropdown('model', 'Select Model', 'bi-cpu') }}
+            <label class="form-label">LLM / Model</label>
+            {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
         </div>
         <div>
             <label for="message" class="form-label">Message</label>
@@ -41,26 +37,35 @@
 
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const provider = document.getElementById('llm').value;
-        const model = document.getElementById('model').value;
         const messageBox = document.getElementById('message');
         const message = messageBox.value;
+        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
+            .map(cb => cb.value.split('|'));
 
         // clear the textarea and show a processing indicator
         messageBox.value = '';
         messageBox.placeholder = 'Processing the message...';
         document.getElementById('status').textContent = 'Processing the message...';
-        document.getElementById('response').textContent = '';
-
-        const resp = await fetch('/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: 'web', provider, model_name: model, message })
-        });
-
-        const data = await resp.json();
-        document.getElementById('response').innerHTML = marked.parse(data.response);
-        document.getElementById('status').textContent = 'API response received.';
+        const respDiv = document.getElementById('response');
+        respDiv.innerHTML = '';
+        for (const [provider, model] of selected) {
+            const container = document.createElement('div');
+            container.className = 'border p-3 mb-3 rounded';
+            container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
+            respDiv.appendChild(container);
+            try {
+                const resp = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: 'web', provider, model_name: model, message })
+                });
+                const data = await resp.json();
+                container.querySelector('div').innerHTML = marked.parse(data.response);
+            } catch (err) {
+                container.querySelector('div').textContent = 'Error: ' + err;
+            }
+        }
+        document.getElementById('status').textContent = 'API responses received.';
         messageBox.placeholder = '';
         await loadHistory();
     });
@@ -68,39 +73,21 @@
     async function loadModels() {
         const resp = await fetch('/models');
         models = await resp.json();
-        const llmMenu = document.getElementById('llm-menu');
-        llmMenu.innerHTML = Object.keys(models).map(m => `<li><a class="dropdown-item" href="#" data-value="${m}"><i class="bi bi-chat-square-dots me-2"></i>${m}</a></li>`).join('');
-        selectItem('llm', llmMenu.querySelector('[data-value]')?.dataset.value);
+        const menu = document.getElementById('combo-menu');
+        let html = '';
+        Object.entries(models).forEach(([provider, list]) => {
+            list.forEach(model => {
+                const id = `cmb-${provider}-${model}`.replace(/[^a-z0-9]/gi, '-');
+                html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${provider}|${model}" id="${id}"><label class="form-check-label" for="${id}">${provider} - ${model}</label></div>`;
+            });
+        });
+        menu.innerHTML = html;
+        document.getElementById('combo-label').textContent = 'Select Models';
     }
 
-    function updateModelOptions() {
-        const llm = document.getElementById('llm').value;
-        const menu = document.getElementById('model-menu');
-        const opts = models[llm] || [];
-        menu.innerHTML = opts.map(m => `<li><a class="dropdown-item" href="#" data-value="${m}">${m}</a></li>`).join('');
-        const first = menu.querySelector('[data-value]');
-        if (first) selectItem('model', first.dataset.value, false);
-    }
-
-    function selectItem(id, value, updateModels = true) {
-        if (!value) return;
-        document.getElementById(id).value = value;
-        document.getElementById(id + '-label').textContent = value;
-        if (id === 'llm' && updateModels) updateModelOptions();
-    }
-
-    document.getElementById('llm-menu').addEventListener('click', e => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        e.preventDefault();
-        selectItem('llm', item.dataset.value);
-    });
-
-    document.getElementById('model-menu').addEventListener('click', e => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        e.preventDefault();
-        selectItem('model', item.dataset.value, false);
+    document.getElementById('combo-menu').addEventListener('change', () => {
+        const count = document.querySelectorAll('#combo-menu input:checked').length;
+        document.getElementById('combo-label').textContent = count ? `${count} selected` : 'Select Models';
     });
 
     async function loadHistory() {
