@@ -109,8 +109,8 @@
         const html = data.history.map(pair => {
             const prompt = marked.parse(pair.prompt);
             const response = marked.parse(pair.response);
-            return `<div><p><strong>User:</strong></p>${prompt}<p><strong>Assistant:</strong></p>${response}</div>`;
-        }).join('<hr>');
+            return `<div class="border border-dark p-3 mb-3 rounded"><p><strong>User:</strong></p>${prompt}<p><strong>Assistant:</strong></p>${response}</div>`;
+        }).join('');
         document.getElementById('history').innerHTML = html;
     }
 
