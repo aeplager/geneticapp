@@ -52,7 +52,10 @@ def call_model(provider: str, messages, model_name: str, files=None):
     """Dispatch call to different LLM providers using a specific model."""
     if provider in ("chatgpt", "gpt-3.5-turbo", "openai"):
         from openai import OpenAI
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return "OpenAI API key not configured"
+        client = OpenAI(api_key=api_key)
 
         if files:
             if not is_multimodal(provider, model_name):
@@ -73,11 +76,17 @@ def call_model(provider: str, messages, model_name: str, files=None):
             user_msg["content"] = content
             messages = messages[:-1] + [user_msg]
 
-        resp = client.chat.completions.create(model=model_name, messages=messages)
-        return resp.choices[0].message.content
+        try:
+            resp = client.chat.completions.create(model=model_name, messages=messages)
+            return resp.choices[0].message.content
+        except Exception as e:
+            return f"OpenAI error: {e}"
     elif provider == "claude":
         import anthropic
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            return "Anthropic API key not configured"
+        client = anthropic.Anthropic(api_key=api_key)
         if files:
             if not is_multimodal(provider, model_name):
                 return "Model does not support file input"
@@ -97,30 +106,48 @@ def call_model(provider: str, messages, model_name: str, files=None):
             user_msg["content"] = content
             messages = messages[:-1] + [user_msg]
 
-        resp = client.messages.create(
-            model=model_name,
-            messages=messages,
-            max_tokens=1024,
-        )
-        return resp.content[0].text
+        try:
+            resp = client.messages.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=1024,
+            )
+            return resp.content[0].text
+        except Exception as e:
+            return f"Anthropic error: {e}"
     elif provider == "mistral":
         from openai import OpenAI
+        api_key = os.getenv("MISTRAL_API_KEY")
+        if not api_key:
+            return "Mistral API key not configured"
         client = OpenAI(
             base_url=os.getenv("MISTRAL_API_BASE", "https://api.mistral.ai/v1"),
-            api_key=os.getenv("MISTRAL_API_KEY"),
+            api_key=api_key,
         )
-        resp = client.chat.completions.create(model=model_name, messages=messages)
-        return resp.choices[0].message.content
+        try:
+            resp = client.chat.completions.create(model=model_name, messages=messages)
+            return resp.choices[0].message.content
+        except Exception as e:
+            return f"Mistral error: {e}"
     elif provider == "llama":
         from openai import OpenAI
-        client = OpenAI(base_url=os.getenv("LLAMA_API_BASE"), api_key=os.getenv("LLAMA_API_KEY"))
-        resp = client.chat.completions.create(model=model_name, messages=messages)
-        return resp.choices[0].message.content
+        api_key = os.getenv("LLAMA_API_KEY")
+        if not api_key:
+            return "LLama API key not configured"
+        client = OpenAI(base_url=os.getenv("LLAMA_API_BASE"), api_key=api_key)
+        try:
+            resp = client.chat.completions.create(model=model_name, messages=messages)
+            return resp.choices[0].message.content
+        except Exception as e:
+            return f"LLama error: {e}"
     elif provider == "perplexity":
         from openai import OpenAI
+        api_key = os.getenv("PERPLEXITY_API_KEY")
+        if not api_key:
+            return "Perplexity API key not configured"
         client = OpenAI(
             base_url=os.getenv("PERPLEXITY_API_BASE", "https://api.perplexity.ai"),
-            api_key=os.getenv("PERPLEXITY_API_KEY"),
+            api_key=api_key,
         )
         try:
             resp = client.chat.completions.create(model=model_name, messages=messages)

@@ -29,6 +29,11 @@ export PERPLEXITY_MODEL=pplx-70b-online
 python app/app.py
 ```
 
+The server expects the relevant API key environment variables to be defined.
+If a key is missing for the selected provider, the `/chat` and `/summarize`
+endpoints will return a clear error message instead of failing with a
+traceback.
+
 The server listens on port `5000`.
 
 Open `http://localhost:5000/` in a browser to use the simple web interface. It
