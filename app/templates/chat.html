@@ -49,41 +49,47 @@
         e.preventDefault();
         const messageBox = document.getElementById('message');
         const message = messageBox.value;
-        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
-        if (selected.length) {
-            [provider, model] = selected[0];
-        }
+        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
+            .map(cb => cb.value.split('|'));
+        const queries = selected.length ? selected : [[provider, model]];
 
         messageBox.value = '';
         messageBox.placeholder = 'Processing the message...';
         document.getElementById('status').textContent = 'Processing the message...';
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
-
-        const container = document.createElement('div');
-        container.className = 'border p-3 mb-3 rounded';
-        container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
-        respDiv.appendChild(container);
-        try {
-            const resp = await fetch('/gene_chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    gene: gene,
-                    variant: variant,
-                    status: status,
-                    recipient: recipient,
-                    provider: provider,
-                    model_name: model,
-                    question: message
-                })
-            });
-            const data = await resp.json();
-            container.querySelector('div').innerHTML = marked.parse(data.response);
-            renderHistory(data.history);
-        } catch (err) {
-            container.querySelector('div').textContent = 'Error: ' + err;
+        let lastHistory = null;
+        for (const [prov, mod] of queries) {
+            provider = prov;
+            model = mod;
+            const container = document.createElement('div');
+            container.className = 'border p-3 mb-3 rounded';
+            container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
+            respDiv.appendChild(container);
+            try {
+                const resp = await fetch('/gene_chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        gene: gene,
+                        variant: variant,
+                        status: status,
+                        recipient: recipient,
+                        provider: prov,
+                        model_name: mod,
+                        question: message
+                    })
+                });
+                const data = await resp.json();
+                container.querySelector('div').innerHTML = marked.parse(data.response);
+                lastHistory = data.history;
+            } catch (err) {
+                container.querySelector('div').textContent = 'Error: ' + err;
+            }
+        }
+        if (lastHistory) {
+            renderHistory(lastHistory);
         }
         document.getElementById('status').textContent = 'API responses received.';
         messageBox.placeholder = '';
@@ -132,10 +138,11 @@
     }
 
     function renderHistory(history) {
+        const msgs = history.filter(m => m.role !== 'system');
         const pairs = [];
-        for (let i = 0; i + 1 < history.length; i += 2) {
-            const prompt = marked.parse(history[i].content);
-            const response = marked.parse(history[i + 1].content);
+        for (let i = 0; i + 1 < msgs.length; i += 2) {
+            const prompt = marked.parse(msgs[i].content);
+            const response = marked.parse(msgs[i + 1].content);
             pairs.push(`<div class="border border-dark p-3 mb-3 rounded"><p><strong>User:</strong></p>${prompt}<p><strong>Assistant:</strong></p>${response}</div>`);
         }
         document.getElementById('history').innerHTML = pairs.join('');
