@@ -330,15 +330,20 @@ def gene_chat():
 
     base_prompt = ROLE_PROMPTS.get(recipient, ROLE_PROMPTS['self'])
     gene_info = fetch_omim_info(gene)
+
+    history = conversations.setdefault(session_id, [])
+    if not history:
+        # only include the role instructions once per session
+        history.append({'role': 'system', 'content': base_prompt})
+
     prompt = (
-        f"{base_prompt}\n\nGene: {gene}\nVariant: {variant}\n"
+        f"Gene: {gene}\nVariant: {variant}\n"
         f"Classification Status: {status}\n"
         f"Information from OMIM: {gene_info}"
     )
     if question:
         prompt += f"\nQuestion: {question}"
 
-    history = conversations.setdefault(session_id, [])
     history.append({'role': 'user', 'content': prompt})
 
     response_content = call_model(provider, history, model_name)
