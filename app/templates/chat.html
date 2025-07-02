@@ -41,8 +41,8 @@
     const status = params.get('status') || '';
     const recipient = params.get('recipient') || 'self';
     const sessionId = 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-    let provider = 'chatgpt';
-    let model = 'gpt-3.5-turbo';
+    let provider = params.get('provider') || 'chatgpt';
+    let model = params.get('model_name') || 'gpt-3.5-turbo';
     document.getElementById('info').textContent = `Gene: ${gene}  Variant: ${variant}  Status: ${status}`;
 
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
@@ -103,10 +103,20 @@
         });
         menu.innerHTML = html;
         document.getElementById('combo-label').textContent = 'Select Models';
+        const id = `cmb-${provider}-${model}`.replace(/[^a-z0-9]/gi, '-');
+        const cb = document.getElementById(id);
+        if (cb) {
+            cb.checked = true;
+            document.getElementById('combo-label').textContent = '1 selected';
+        }
     }
 
     document.getElementById('combo-menu').addEventListener('change', () => {
-        const count = document.querySelectorAll('#combo-menu input:checked').length;
+        const checked = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
+        if (checked.length) {
+            [provider, model] = checked[0];
+        }
+        const count = checked.length;
         document.getElementById('combo-label').textContent = count ? `${count} selected` : 'Select Models';
     });
 
@@ -119,6 +129,16 @@
             return `<div class="border border-dark p-3 mb-3 rounded"><p><strong>User:</strong></p>${prompt}<p><strong>Assistant:</strong></p>${response}</div>`;
         }).join('');
         document.getElementById('history').innerHTML = html;
+    }
+
+    function renderHistory(history) {
+        const pairs = [];
+        for (let i = 0; i + 1 < history.length; i += 2) {
+            const prompt = marked.parse(history[i].content);
+            const response = marked.parse(history[i + 1].content);
+            pairs.push(`<div class="border border-dark p-3 mb-3 rounded"><p><strong>User:</strong></p>${prompt}<p><strong>Assistant:</strong></p>${response}</div>`);
+        }
+        document.getElementById('history').innerHTML = pairs.join('');
     }
 
     // load existing history and model list on page load

@@ -29,8 +29,8 @@
     const variant = params.get('variant') || '';
     const status = params.get('status') || '';
     const recipient = params.get('recipient') || 'self';
-    let provider = 'chatgpt';
-    let model = 'gpt-3.5-turbo';
+    let provider = params.get('provider') || 'chatgpt';
+    let model = params.get('model_name') || 'gpt-3.5-turbo';
 
     async function loadModels() {
         const resp = await fetch('/models');
@@ -46,6 +46,12 @@
         });
         menu.innerHTML = html;
         document.getElementById('combo-label').textContent = 'Select Models';
+        const id = `cmb-${provider}-${model}`.replace(/[^a-z0-9]/gi, '-');
+        const cb = document.getElementById(id);
+        if (cb) {
+            cb.checked = true;
+            document.getElementById('combo-label').textContent = '1 selected';
+        }
     }
 
     document.getElementById('combo-menu').addEventListener('change', () => {
@@ -82,7 +88,7 @@
     });
 
     document.getElementById('next-btn').addEventListener('click', () => {
-        const q = new URLSearchParams({gene, variant, status, recipient}).toString();
+        const q = new URLSearchParams({gene, variant, status, recipient, provider, model_name: model}).toString();
         window.location.href = '/chatpage?' + q;
     });
 
