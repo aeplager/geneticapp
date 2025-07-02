@@ -303,13 +303,14 @@ def call_model(provider: str, messages, model_name: str, files=None):
 def gene_chat():
     """Handle gene queries by pulling info from OMIM before calling the LLM."""
     data = request.json or {}
-    session_id = 'gene'
+    session_id = data.get('session_id', 'gene')
     gene = data.get('gene', '')
     variant = data.get('variant', '')
     status = data.get('status', '')
     recipient = data.get('recipient', 'self')
     provider = data.get('provider', 'chatgpt')
     model_name = data.get('model_name') or default_model(provider)
+    question = data.get('question', '')
 
     base_prompt = ROLE_PROMPTS.get(recipient, ROLE_PROMPTS['self'])
     gene_info = fetch_omim_info(gene)
@@ -318,6 +319,8 @@ def gene_chat():
         f"Classification Status: {status}\n"
         f"Information from OMIM: {gene_info}"
     )
+    if question:
+        prompt += f"\nQuestion: {question}"
 
     history = conversations.setdefault(session_id, [])
     history.append({'role': 'user', 'content': prompt})

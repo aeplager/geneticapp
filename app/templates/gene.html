@@ -38,7 +38,16 @@
             <button type="button" id="conditions-btn" class="btn btn-secondary">Condition Summary</button>
         </div>
     </form>
+    <form id="question-form" class="vstack gap-3 mt-4" style="display:none;">
+        <div>
+            <label for="question" class="form-label">Follow-up Question</label>
+            <textarea id="question" rows="3" class="form-control"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Ask</button>
+    </form>
     <div id="response" class="mt-4"></div>
+    <h2 class="mt-4" id="history-title" style="display:none;">History</h2>
+    <div id="history" class="vstack gap-3"></div>
     <div id="status-msg" class="text-success"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -47,6 +56,8 @@
     const statuses = ['Benign', 'Likely Benign', 'VUS', 'Likely Pathogenic', 'Pathogenic'];
     const recipients = ['self', 'child', 'spouse', 'parent'];
     let models = {};
+    const sessionId = 'gene-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    let current = { gene: '', variant: '', status: '', recipient: 'self', provider: '', model: '' };
 
     function loadStatus() {
         const menu = document.getElementById('status-menu');
@@ -98,41 +109,71 @@
         document.getElementById('combo-label').textContent = count ? `${count} selected` : 'Select Models';
     });
 
-    document.getElementById('gene-form').addEventListener('submit', async e => {
-        e.preventDefault();
-        const gene = document.getElementById('gene').value;
-        const variant = document.getElementById('variant').value;
-        const status = document.getElementById('status').value;
-        const recipient = document.getElementById('recipient').value || 'self';
-        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
+    async function sendGeneChat(question = '') {
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
         document.getElementById('status-msg').textContent = 'Processing...';
-        for (const [provider, model] of selected) {
-            const container = document.createElement('div');
-            container.className = 'border p-3 mb-3 rounded';
-            container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
-            respDiv.appendChild(container);
-            try {
-                const resp = await fetch('/gene_chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        gene: gene,
-                        variant: variant,
-                        status: status,
-                        recipient: recipient,
-                        provider: provider,
-                        model_name: model
-                    })
-                });
-                const data = await resp.json();
-                container.querySelector('div').innerHTML = marked.parse(data.response);
-            } catch (err) {
-                container.querySelector('div').textContent = 'Error: ' + err;
-            }
+        const container = document.createElement('div');
+        container.className = 'border p-3 mb-3 rounded';
+        container.innerHTML = `<h5>${current.provider} - ${current.model}</h5><div>Loading...</div>`;
+        respDiv.appendChild(container);
+        try {
+            const resp = await fetch('/gene_chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    gene: current.gene,
+                    variant: current.variant,
+                    status: current.status,
+                    recipient: current.recipient,
+                    provider: current.provider,
+                    model_name: current.model,
+                    question: question
+                })
+            });
+            const data = await resp.json();
+            container.querySelector('div').innerHTML = marked.parse(data.response);
+            renderHistory(data.history);
+        } catch (err) {
+            container.querySelector('div').textContent = 'Error: ' + err;
         }
         document.getElementById('status-msg').textContent = 'API responses received.';
+        document.getElementById('question-form').style.display = 'block';
+        document.getElementById('history-title').style.display = 'block';
+    }
+
+    function renderHistory(history) {
+        const pairs = [];
+        for (let i = 0; i < history.length; i += 2) {
+            if (i + 1 < history.length) {
+                pairs.push({prompt: history[i].content, response: history[i+1].content});
+            }
+        }
+        const html = pairs.map(p => `<div class="border border-dark p-3 mb-3 rounded"><p><strong>User:</strong></p>${marked.parse(p.prompt)}<p><strong>Assistant:</strong></p>${marked.parse(p.response)}</div>`).join('');
+        document.getElementById('history').innerHTML = html;
+    }
+
+    document.getElementById('gene-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        current.gene = document.getElementById('gene').value;
+        current.variant = document.getElementById('variant').value;
+        current.status = document.getElementById('status').value;
+        current.recipient = document.getElementById('recipient').value || 'self';
+        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
+        if (!selected.length) {
+            alert('Please select a model');
+            return;
+        }
+        [current.provider, current.model] = selected[0];
+        await sendGeneChat('');
+    });
+
+    document.getElementById('question-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const q = document.getElementById('question').value;
+        document.getElementById('question').value = '';
+        await sendGeneChat(q);
     });
 
     loadStatus();
