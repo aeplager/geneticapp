@@ -42,6 +42,12 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/gene')
+def gene_page():
+    """Page for looking up gene/variant information."""
+    return render_template('gene.html')
+
+
 @app.route('/models')
 def list_models():
     """Return the available models for each provider."""
