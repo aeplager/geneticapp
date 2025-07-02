@@ -175,6 +175,8 @@ def conditions_page():
             'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
         )
         summary = call_model('chatgpt', [{'role': 'user', 'content': prompt}], default_model('chatgpt'))
+    if request.args.get('json') == '1' or request.accept_mimetypes['application/json'] > request.accept_mimetypes['text/html']:
+        return jsonify({'conditions': conditions, 'summary': summary})
     return render_template('conditions.html', conditions=conditions, summary=summary)
 
 
