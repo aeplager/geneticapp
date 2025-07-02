@@ -14,6 +14,10 @@
     <h1 class="mb-4">Gene Variant Search</h1>
     <form id="gene-form" class="vstack gap-3">
         <div>
+            <label class="form-label">Who is this information for?</label>
+            {{ bootstrap_dropdown('recipient', 'Select Recipient') }}
+        </div>
+        <div>
             <label for="gene" class="form-label">Gene</label>
             <input type="text" id="gene" name="gene" class="form-control" required />
         </div>
@@ -39,6 +43,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const statuses = ['Benign', 'Likely Benign', 'VUS', 'Likely Pathogenic', 'Pathogenic'];
+    const recipients = ['self', 'child', 'spouse', 'parent'];
     let models = {};
 
     function loadStatus() {
@@ -50,6 +55,22 @@
                 e.preventDefault();
                 document.getElementById('status-label').textContent = a.dataset.value;
                 document.getElementById('status').value = a.dataset.value;
+            });
+        });
+    }
+
+    function loadRecipient() {
+        const menu = document.getElementById('recipient-menu');
+        let html = recipients.map(r => {
+            const label = r.charAt(0).toUpperCase() + r.slice(1);
+            return `<li><a class="dropdown-item" href="#" data-value="${r}">${label}</a></li>`;
+        }).join('');
+        menu.innerHTML = html;
+        menu.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                document.getElementById('recipient-label').textContent = a.textContent;
+                document.getElementById('recipient').value = a.dataset.value;
             });
         });
     }
@@ -80,8 +101,15 @@
         const gene = document.getElementById('gene').value;
         const variant = document.getElementById('variant').value;
         const status = document.getElementById('status').value;
+        const recipient = document.getElementById('recipient').value || 'self';
+        const recipientDisplay = {
+            self: 'yourself',
+            child: 'your child',
+            spouse: 'your spouse',
+            parent: 'your parent'
+        };
         const selected = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
-        const prompt = `You are a genetic counselor who is guiding a patient through a genetic screening. Please search for the gene ${gene} and variant ${variant} and summarize what this gene and variant mean to the patient. The status is ${status}.`;
+        const prompt = `You are a genetic counselor guiding a patient through a genetic screening. The patient is seeking information for ${recipientDisplay[recipient]}. Please search for the gene ${gene} and variant ${variant} and summarize what this gene and variant mean, speaking directly to ${recipientDisplay[recipient]}. The status is ${status}.`;
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
         document.getElementById('status-msg').textContent = 'Processing...';
@@ -112,6 +140,7 @@
 
     loadStatus();
     loadModels();
+    loadRecipient();
 </script>
 </body>
 </html>
