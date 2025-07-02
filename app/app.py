@@ -263,9 +263,15 @@ def call_model(provider: str, messages, model_name: str, files=None):
             user_msg["content"] = content
             messages = messages[:-1] + [user_msg]
 
+        system_prompt = None
+        if messages and messages[0].get("role") == "system":
+            system_prompt = messages[0].get("content", "")
+            messages = messages[1:]
+
         try:
             resp = client.messages.create(
                 model=model_name,
+                system=system_prompt,
                 messages=messages,
                 max_tokens=1024,
             )
