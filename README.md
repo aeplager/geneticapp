@@ -70,7 +70,7 @@ OMIM_API_KEY=...
 - `GET /models` – return the available models for each provider.
 - `POST /chat` – send a chat message.
 - `POST /summarize` – summarize a block of text.
-- `POST /gene_chat` – query OMIM for a gene and variant then ask the LLM for an explanation.
+- `POST /gene_chat` – query OMIM for a gene and variant then ask the LLM for an explanation. Supports `session_id` and optional `question` to maintain a conversation.
 - `GET /history` – retrieve the last 20 prompt/response pairs for a session.
 
 `/chat` and `/summarize` accept JSON with `session_id`, `provider` and
