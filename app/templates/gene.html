@@ -33,8 +33,9 @@
             <label class="form-label">LLM / Model</label>
             {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
         </div>
-        <div>
+        <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">Search</button>
+            <button type="button" id="conditions-btn" class="btn btn-secondary">Condition Summary</button>
         </div>
     </form>
     <div id="response" class="mt-4"></div>
@@ -137,6 +138,13 @@
     loadStatus();
     loadModels();
     loadRecipient();
+
+    document.getElementById('conditions-btn').addEventListener('click', () => {
+        const gene = document.getElementById('gene').value;
+        const variant = document.getElementById('variant').value;
+        const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}`;
+        window.location.href = url;
+    });
 </script>
 </body>
 </html>

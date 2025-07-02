@@ -105,6 +105,31 @@ def fetch_omim_info(gene: str) -> str:
     return ""
 
 
+def fetch_medline_conditions(gene: str, variant: str) -> list[str]:
+    """Search MedlinePlus for conditions related to the gene and variant."""
+    query = f"{gene} {variant}".strip()
+    try:
+        resp = requests.get(
+            "https://medlineplus.gov/search",
+            params={"query": query},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return []
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(resp.text, "html.parser")
+        results = []
+        for a in soup.select(".results-list a"):  # typical structure
+            text = a.get_text(strip=True)
+            if text:
+                results.append(text)
+            if len(results) >= 5:
+                break
+        return results
+    except Exception:
+        return []
+
+
 def is_multimodal(provider: str, model_name: str) -> bool:
     """Return True if the given provider/model supports file input."""
     models = AVAILABLE_MODELS.get(provider, [])
@@ -137,6 +162,25 @@ def index():
 def gene_page():
     """Page for looking up gene/variant information."""
     return render_template('gene.html')
+
+
+@app.route('/conditions')
+def conditions_page():
+    gene = request.args.get('gene', '')
+    variant = request.args.get('variant', '')
+    conditions = fetch_medline_conditions(gene, variant)
+    summary = ''
+    if conditions:
+        prompt = (
+            'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
+        )
+        summary = call_model('chatgpt', [{'role': 'user', 'content': prompt}], default_model('chatgpt'))
+    return render_template('conditions.html', conditions=conditions, summary=summary)
+
+
+@app.route('/chatpage')
+def chat_page():
+    return render_template('chat.html')
 
 
 @app.route('/models')

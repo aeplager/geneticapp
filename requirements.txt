@@ -2,3 +2,4 @@ flask
 openai>=1.0
 anthropic
 requests
+beautifulsoup4
