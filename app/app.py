@@ -168,21 +168,35 @@ def gene_page():
 def conditions_page():
     gene = request.args.get('gene', '')
     variant = request.args.get('variant', '')
+    provider = request.args.get('provider', 'chatgpt')
+    model_name = request.args.get('model_name') or default_model(provider)
     conditions = fetch_medline_conditions(gene, variant)
     summary = ''
     if conditions:
         prompt = (
             'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
         )
-        summary = call_model('chatgpt', [{'role': 'user', 'content': prompt}], default_model('chatgpt'))
+        summary = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
     if request.args.get('json') == '1' or request.accept_mimetypes['application/json'] > request.accept_mimetypes['text/html']:
         return jsonify({'conditions': conditions, 'summary': summary})
-    return render_template('conditions.html', conditions=conditions, summary=summary)
+    return render_template(
+        'conditions.html',
+        conditions=conditions,
+        summary=summary,
+        gene=gene,
+        variant=variant,
+    )
 
 
 @app.route('/chatpage')
 def chat_page():
-    return render_template('chat.html')
+    gene = request.args.get('gene', '')
+    variant = request.args.get('variant', '')
+    status = request.args.get('status', '')
+    recipient = request.args.get('recipient', 'self')
+    return render_template(
+        'chat.html', gene=gene, variant=variant, status=status, recipient=recipient
+    )
 
 
 @app.route('/models')

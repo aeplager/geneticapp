@@ -1,4 +1,4 @@
-{% from 'macros.html' import bootstrap_dropdown %}
+{% from 'macros.html' import bootstrap_check_dropdown %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,26 +10,83 @@
 <body>
 <div class="container py-4">
     <h1 class="mb-4">Condition Summary</h1>
-    {% if conditions %}
-        <h5>Conditions found on MedlinePlus</h5>
-        <ul>
-        {% for c in conditions %}
-            <li>{{ c }}</li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No conditions were found for this query.</p>
-    {% endif %}
-    {% if summary %}
-        <h5 class="mt-4">Summary</h5>
-        <div>{{ summary|safe }}</div>
-    {% endif %}
-    <button id="next-btn" class="btn btn-primary mt-4">Next</button>
+    <form id="model-form" class="vstack gap-3">
+        <div>
+            <label class="form-label">LLM / Model</label>
+            {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
+        </div>
+        <button type="submit" class="btn btn-primary">Get Summary</button>
+    </form>
+    <div id="summary" class="mt-4"></div>
+    <button id="next-btn" class="btn btn-secondary mt-2" style="display:none;">Next</button>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    document.getElementById('next-btn').addEventListener('click', () => {
-        window.location.href = '/chatpage';
+    let models = {};
+    const params = new URLSearchParams(window.location.search);
+    const gene = params.get('gene') || '';
+    const variant = params.get('variant') || '';
+    const status = params.get('status') || '';
+    const recipient = params.get('recipient') || 'self';
+    let provider = 'chatgpt';
+    let model = 'gpt-3.5-turbo';
+
+    async function loadModels() {
+        const resp = await fetch('/models');
+        models = await resp.json();
+        const menu = document.getElementById('combo-menu');
+        let html = '';
+        Object.entries(models).forEach(([p, list]) => {
+            list.forEach(info => {
+                const m = typeof info === 'string' ? info : info.name;
+                const id = `cmb-${p}-${m}`.replace(/[^a-z0-9]/gi, '-');
+                html += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${p}|${m}" id="${id}"><label class="form-check-label" for="${id}">${p} - ${m}</label></div>`;
+            });
+        });
+        menu.innerHTML = html;
+        document.getElementById('combo-label').textContent = 'Select Models';
+    }
+
+    document.getElementById('combo-menu').addEventListener('change', () => {
+        const checked = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
+        if (checked.length) {
+            [provider, model] = checked[0];
+        }
+        const count = checked.length;
+        document.getElementById('combo-label').textContent = count ? `${count} selected` : 'Select Models';
     });
+
+    document.getElementById('model-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.textContent = 'Loading...';
+        try {
+            const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&provider=${encodeURIComponent(provider)}&model_name=${encodeURIComponent(model)}&json=1`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            let html = '';
+            if (data.conditions && data.conditions.length) {
+                html += '<h5>Conditions found on MedlinePlus</h5><ul>' + data.conditions.map(c => `<li>${c}</li>`).join('') + '</ul>';
+            } else {
+                html += '<p>No conditions were found for this query.</p>';
+            }
+            if (data.summary) {
+                html += `<h5 class="mt-4">Summary</h5><div>${marked.parse(data.summary)}</div>`;
+            }
+            summaryDiv.innerHTML = html;
+            document.getElementById('next-btn').style.display = 'block';
+        } catch (err) {
+            summaryDiv.textContent = 'Error: ' + err;
+        }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+        const q = new URLSearchParams({gene, variant, status, recipient}).toString();
+        window.location.href = '/chatpage?' + q;
+    });
+
+    loadModels();
 </script>
 </body>
 </html>
