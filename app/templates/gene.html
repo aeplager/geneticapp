@@ -41,6 +41,7 @@
     <div id="status-msg" class="text-success"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     const statuses = ['Benign', 'Likely Benign', 'VUS', 'Likely Pathogenic', 'Pathogenic'];
     const recipients = ['self', 'child', 'spouse', 'parent'];
@@ -125,7 +126,7 @@
                     })
                 });
                 const data = await resp.json();
-                container.querySelector('div').textContent = data.response;
+                container.querySelector('div').innerHTML = marked.parse(data.response);
             } catch (err) {
                 container.querySelector('div').textContent = 'Error: ' + err;
             }
