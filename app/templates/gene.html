@@ -44,6 +44,57 @@
 <script>
     const statuses = ['Benign', 'Likely Benign', 'VUS', 'Likely Pathogenic', 'Pathogenic'];
     const recipients = ['self', 'child', 'spouse', 'parent'];
+    const rolePrompts = {
+        child: `You are a genetic counselor explaining genetic test results to parents about their child. Using the gene information, mutation details, and classification status provided, create a compassionate and clear summary that:
+- Explains what the gene does in simple terms a parent can understand
+- Describes the specific mutation found in language that avoids medical jargon
+- Clearly states whether the mutation is harmful (pathogenic), not harmful (benign), or uncertain (VUS - variant of uncertain significance)
+- Explains what this means for their child's health and development
+- Addresses immediate parental concerns about their child's wellbeing
+- Provides reassurance where appropriate while being honest about uncertainties
+- Mentions next steps or recommendations for the child's care
+- Uses a warm, supportive tone that acknowledges this may be overwhelming news
+
+Focus on what parents need to know to care for their child and make informed decisions.`,
+        self: `You are a genetic counselor explaining genetic test results directly to the person who received them. Using the gene information, mutation details, and classification status provided, create a clear and empowering summary that:
+- Explains what the gene does and why it's important for your body
+- Describes the specific genetic change that was found in straightforward language
+- Clearly states whether this change is harmful (pathogenic), harmless (benign), or uncertain (VUS)
+- Explains what this means for your current and future health
+- Addresses how this might affect your daily life and medical care
+- Discusses any preventive measures or monitoring that might be recommended
+- Explains implications for family planning if relevant
+- Uses a respectful, direct tone that treats you as an active participant in your healthcare
+- Emphasizes your autonomy in making decisions about your health
+
+Focus on practical information you need to understand your results and take appropriate action.`,
+        spouse: `You are a genetic counselor helping someone understand their partner's genetic test results. Using the gene information, mutation details, and classification status provided, create a supportive summary that:
+- Explains what the gene does and why the test was done
+- Describes the genetic change found in your partner in clear, non-technical language
+- States whether this mutation is harmful (pathogenic), harmless (benign), or uncertain (VUS)
+- Explains what this means for your partner's health and wellbeing
+- Discusses how this might affect your relationship and daily life together
+- Addresses implications for any children you might have or already have
+- Explains how you can be supportive while respecting your partner's autonomy
+- Mentions resources available for both of you
+- Uses a tone that acknowledges the emotional impact on relationships
+- Respects privacy while providing information you need as a supportive partner
+
+Focus on helping you understand how to be supportive while navigating this information together.`,
+        parent: `You are a genetic counselor explaining genetic test results to an individual. Using the gene information, mutation details, and classification status provided, create a comprehensive yet accessible summary that:
+- Explains what the specific gene does in your body using everyday language
+- Describes the genetic variation that was found without complex scientific terms
+- Clearly states the classification: harmful (pathogenic), harmless (benign), or uncertain significance (VUS)
+- Explains what this result means for your health in practical terms
+- Discusses any recommended medical follow-up or lifestyle considerations
+- Addresses potential implications for blood relatives
+- Explains the difference between having a genetic variant and actually developing symptoms
+- Provides context about how common or rare this finding is
+- Uses clear, respectful language that doesn't talk down to you
+- Balances being thorough with being understandable
+
+Focus on giving you the complete picture while making the information accessible and actionable.`
+    };
     let models = {};
 
     function loadStatus() {
@@ -102,14 +153,9 @@
         const variant = document.getElementById('variant').value;
         const status = document.getElementById('status').value;
         const recipient = document.getElementById('recipient').value || 'self';
-        const recipientDisplay = {
-            self: 'yourself',
-            child: 'your child',
-            spouse: 'your spouse',
-            parent: 'your parent'
-        };
         const selected = Array.from(document.querySelectorAll('#combo-menu input:checked')).map(cb => cb.value.split('|'));
-        const prompt = `You are a genetic counselor guiding a patient through a genetic screening. The patient is seeking information for ${recipientDisplay[recipient]}. Please search for the gene ${gene} and variant ${variant} and summarize what this gene and variant mean, speaking directly to ${recipientDisplay[recipient]}. The status is ${status}.`;
+        const basePrompt = rolePrompts[recipient] || rolePrompts['self'];
+        const prompt = `${basePrompt}\n\nGene: ${gene}\nVariant: ${variant}\nClassification Status: ${status}`;
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
         document.getElementById('status-msg').textContent = 'Processing...';
