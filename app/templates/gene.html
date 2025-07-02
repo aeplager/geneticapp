@@ -35,9 +35,11 @@
         </div>
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">Search</button>
-            <button type="button" id="conditions-btn" class="btn btn-secondary">Condition Summary</button>
         </div>
     </form>
+    <div id="response" class="mt-4"></div>
+    <button type="button" id="conditions-btn" class="btn btn-secondary mt-2" style="display:none;">Condition Summary</button>
+    <div id="conditions-response" class="mt-4"></div>
     <form id="question-form" class="vstack gap-3 mt-4" style="display:none;">
         <div>
             <label for="question" class="form-label">Follow-up Question</label>
@@ -45,7 +47,6 @@
         </div>
         <button type="submit" class="btn btn-primary">Ask</button>
     </form>
-    <div id="response" class="mt-4"></div>
     <h2 class="mt-4" id="history-title" style="display:none;">History</h2>
     <div id="history" class="vstack gap-3"></div>
     <div id="status-msg" class="text-success"></div>
@@ -139,8 +140,12 @@
             container.querySelector('div').textContent = 'Error: ' + err;
         }
         document.getElementById('status-msg').textContent = 'API responses received.';
-        document.getElementById('question-form').style.display = 'block';
         document.getElementById('history-title').style.display = 'block';
+        if (!question) {
+            document.getElementById('conditions-btn').style.display = 'block';
+            document.getElementById('conditions-response').innerHTML = '';
+            document.getElementById('question-form').style.display = 'none';
+        }
     }
 
     function renderHistory(history) {
@@ -180,11 +185,30 @@
     loadModels();
     loadRecipient();
 
-    document.getElementById('conditions-btn').addEventListener('click', () => {
+    document.getElementById('conditions-btn').addEventListener('click', async () => {
         const gene = document.getElementById('gene').value;
         const variant = document.getElementById('variant').value;
-        const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}`;
-        window.location.href = url;
+        const respDiv = document.getElementById('conditions-response');
+        respDiv.textContent = 'Loading...';
+        try {
+            const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&json=1`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            let html = '';
+            if (data.conditions && data.conditions.length) {
+                html += '<h5>Conditions found on MedlinePlus</h5><ul>' +
+                    data.conditions.map(c => `<li>${c}</li>`).join('') + '</ul>';
+            } else {
+                html += '<p>No conditions were found for this query.</p>';
+            }
+            if (data.summary) {
+                html += `<h5 class="mt-4">Summary</h5><div>${marked.parse(data.summary)}</div>`;
+            }
+            respDiv.innerHTML = html;
+            document.getElementById('question-form').style.display = 'block';
+        } catch (err) {
+            respDiv.textContent = 'Error: ' + err;
+        }
     });
 </script>
 </body>
