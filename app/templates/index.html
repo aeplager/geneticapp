@@ -38,6 +38,9 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     let models = {};
+    let provider = 'chatgpt';
+    let model = 'gpt-3.5-turbo';
+    let historySession = `web-${provider}-${model}`;
 
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -53,15 +56,20 @@
         document.getElementById('status').textContent = 'Processing the message...';
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
-        const promises = selected.map(([provider, model]) => {
+        const promises = selected.map(([prov, mod], idx) => {
+            provider = prov;
+            model = mod;
+            if (idx === 0) {
+                historySession = `web-${prov}-${mod}`;
+            }
             const container = document.createElement('div');
             container.className = 'border p-3 mb-3 rounded';
-            container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
+            container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
             respDiv.appendChild(container);
             const fd = new FormData();
-            fd.append('session_id', 'web');
-            fd.append('provider', provider);
-            fd.append('model_name', model);
+            fd.append('session_id', `web-${prov}-${mod}`);
+            fd.append('provider', prov);
+            fd.append('model_name', mod);
             fd.append('message', message);
             [...fileInput.files].forEach(f => fd.append('files', f));
             return fetch('/chat', { method: 'POST', body: fd })
@@ -101,7 +109,7 @@
     });
 
     async function loadHistory() {
-        const resp = await fetch('/history?session_id=web');
+        const resp = await fetch(`/history?session_id=${historySession}`);
         const data = await resp.json();
         const html = data.history.map(pair => {
             const prompt = marked.parse(pair.prompt);

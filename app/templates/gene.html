@@ -118,30 +118,48 @@
         const status = document.getElementById('status').value;
         const recipient = document.getElementById('recipient').value || 'self';
 
+        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
+            .map(cb => cb.value.split('|'));
+        if (selected.length) {
+            [provider, model] = selected[0];
+        } else {
+            selected.push([provider, model]);
+        }
+
         nextParams = `gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&status=${encodeURIComponent(status)}&recipient=${encodeURIComponent(recipient)}&provider=${encodeURIComponent(provider)}&model_name=${encodeURIComponent(model)}`;
 
         const respDiv = document.getElementById('response');
-        respDiv.textContent = 'Loading...';
-        try {
-            const resp = await fetch('/gene_chat', {
+        respDiv.innerHTML = '';
+
+        const promises = selected.map(([prov, mod]) => {
+            const container = document.createElement('div');
+            container.className = 'border p-3 mb-3 rounded';
+            container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
+            respDiv.appendChild(container);
+            return fetch('/gene_chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    session_id: sessionId,
+                    session_id: `${sessionId}-${prov}-${mod}`,
                     gene: gene,
                     variant: variant,
                     status: status,
                     recipient: recipient,
-                    provider: provider,
-                    model_name: model
+                    provider: prov,
+                    model_name: mod
                 })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                container.querySelector('div').innerHTML = marked.parse(data.response);
+            })
+            .catch(err => {
+                container.querySelector('div').textContent = 'Error: ' + err;
             });
-            const data = await resp.json();
-            respDiv.innerHTML = marked.parse(data.response);
-            document.getElementById('next-btn').style.display = 'block';
-        } catch (err) {
-            respDiv.textContent = 'Error: ' + err;
-        }
+        });
+
+        await Promise.all(promises);
+        document.getElementById('next-btn').style.display = 'block';
         document.getElementById('status-msg').textContent = '';
     }
 
