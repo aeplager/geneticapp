@@ -3,6 +3,13 @@ import os
 import json
 import base64
 import requests
+from typing import List
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 app = Flask(__name__)
 
@@ -130,6 +137,47 @@ def fetch_medline_conditions(gene: str, variant: str) -> list[str]:
         return []
 
 
+def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
+    """Return phenotype names from OMIM for the given gene and variant."""
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+
+    driver = webdriver.Chrome(options=options)
+    try:
+        query = f"{gene} {variant}".strip()
+        driver.get("https://www.omim.org/")
+
+        search_box = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "searchField"))
+        )
+        search_box.send_keys(query)
+        search_box.send_keys(Keys.RETURN)
+
+        first_result = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".results .gene-result-title a"))
+        )
+        first_result.click()
+
+        phenotype_rows = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#phenotypeMap .mim-table-row"))
+        )
+
+        phenotypes = []
+        for row in phenotype_rows:
+            cells = row.find_elements(By.CSS_SELECTOR, ".mim-table-cell")
+            if cells:
+                phenotype = cells[0].text.strip()
+                if phenotype:
+                    phenotypes.append(phenotype)
+        return phenotypes
+    except Exception:
+        return []
+    finally:
+        driver.quit()
+
+
 def is_multimodal(provider: str, model_name: str) -> bool:
     """Return True if the given provider/model supports file input."""
     models = AVAILABLE_MODELS.get(provider, [])
@@ -170,7 +218,9 @@ def conditions_page():
     variant = request.args.get('variant', '')
     provider = request.args.get('provider', 'chatgpt')
     model_name = request.args.get('model_name') or default_model(provider)
-    conditions = fetch_medline_conditions(gene, variant)
+    conditions = get_phenotypes_from_omim(gene, variant)
+    if not conditions:
+        conditions = fetch_medline_conditions(gene, variant)
     summary = ''
     if conditions:
         prompt = (
