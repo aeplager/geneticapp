@@ -59,35 +59,37 @@
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
         let lastHistory = null;
-        for (const [prov, mod] of queries) {
+        const promises = queries.map(([prov, mod]) => {
             provider = prov;
             model = mod;
             const container = document.createElement('div');
             container.className = 'border p-3 mb-3 rounded';
             container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
             respDiv.appendChild(container);
-            try {
-                const resp = await fetch('/gene_chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        gene: gene,
-                        variant: variant,
-                        status: status,
-                        recipient: recipient,
-                        provider: prov,
-                        model_name: mod,
-                        question: message
-                    })
-                });
-                const data = await resp.json();
+            return fetch('/gene_chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    gene: gene,
+                    variant: variant,
+                    status: status,
+                    recipient: recipient,
+                    provider: prov,
+                    model_name: mod,
+                    question: message
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
                 container.querySelector('div').innerHTML = marked.parse(data.response);
                 lastHistory = data.history;
-            } catch (err) {
+            })
+            .catch(err => {
                 container.querySelector('div').textContent = 'Error: ' + err;
-            }
-        }
+            });
+        });
+        await Promise.all(promises);
         if (lastHistory) {
             renderHistory(lastHistory);
         }
