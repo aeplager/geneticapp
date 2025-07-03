@@ -38,7 +38,10 @@
         </div>
     </form>
     <div id="response" class="mt-4"></div>
-    <button type="button" id="next-btn" class="btn btn-secondary mt-2" style="display:none;">Next</button>
+    <div id="nav-buttons" class="d-flex gap-2 mt-2" style="display:none;">
+        <button type="button" id="back-btn" class="btn btn-secondary">Back</button>
+        <button type="button" id="next-btn" class="btn btn-secondary">Next</button>
+    </div>
     <div id="status-msg" class="text-success"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -159,13 +162,17 @@
         });
 
         await Promise.all(promises);
-        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('nav-buttons').style.display = 'flex';
         document.getElementById('status-msg').textContent = '';
     }
 
     document.getElementById('gene-form').addEventListener('submit', async e => {
         e.preventDefault();
         await sendGeneChat();
+    });
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+        window.history.back();
     });
 
     document.getElementById('next-btn').addEventListener('click', () => {
