@@ -3,7 +3,7 @@ import os
 import json
 import base64
 import requests
-import bs4 as BeautifulSoup
+from bs4 import BeautifulSoup
 app = Flask(__name__)
 
 # in-memory storage of conversations by session_id
@@ -326,8 +326,13 @@ def conditions_page():
     model_name = request.args.get('model_name') or default_model(provider)
     url = f'https://www.omim.org/search?index=entry&start=1&limit=10&sort=score+desc%2C+prefix_sort+desc&search={gene.rstrip().lstrip()}++++{variant.rstrip().lstrip()}'
     print("Position 1 url:", url)
-    new_url = 'https://www.omim.org' + get_first_mim_result_href(url)
+    href = get_first_mim_result_href(url)
+    if not href:
+        return "No OMIM results found", 404
+    new_url = 'https://www.omim.org' + href
     response = get_html_as_plain_text(new_url)
+    if not response:
+        return "Could not fetch OMIM entry", 500
     print("Position 2 response:", response[:100])
     response = response[:10000]
     prompt = "Please tell me the phenotypes listed in this text:\n\n"
