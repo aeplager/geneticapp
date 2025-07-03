@@ -3,7 +3,7 @@ import os
 import json
 import base64
 import requests
-
+import bs4 as BeautifulSoup
 app = Flask(__name__)
 
 # in-memory storage of conversations by session_id
@@ -116,7 +116,6 @@ def fetch_medline_conditions(gene: str, variant: str) -> list[str]:
         )
         if resp.status_code != 200:
             return []
-        from bs4 import BeautifulSoup
         soup = BeautifulSoup(resp.text, "html.parser")
         results = []
         for a in soup.select(".results-list a"):  # typical structure
@@ -213,7 +212,78 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
     except Exception:
         return []
 
+def get_first_mim_result_href(url):
+    """
+    Fetches HTML from a given URL, finds the first <span> with class "mim-result-font",
+    and returns the href of the first <a> tag found within it.
 
+    Args:
+        url (str): The URL of the web page to parse.
+
+    Returns:
+        str or None: The href attribute value if found, otherwise None.
+    """
+    # Define headers to mimic a web browser
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find the first <span> with the class "mim-result-font"
+        target_span = soup.find('span', class_='mim-result-font')
+
+        if target_span:
+            # Within that span, find the first <a> tag
+            link_tag = target_span.find('a')
+
+            if link_tag and 'href' in link_tag.attrs:
+                return link_tag['href']
+            else:
+                print("No <a> tag or href attribute found within the specified span.")
+                return None
+        else:
+            print("No <span> with class 'mim-result-font' found on the page.")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+def get_html_as_plain_text(url):
+    """
+    Fetches HTML from a given URL and returns its plain text content.
+    Includes a User-Agent header to mimic a browser.
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status() # Raise an exception for HTTP errors
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Use get_text() to extract all text.
+        # ' ' as separator often helps retain some readability between elements.
+        # strip=True removes leading/trailing whitespace from each line/block.
+        plain_text = soup.get_text(separator='\n', strip=True)
+        return plain_text
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None   
+    
 def is_multimodal(provider: str, model_name: str) -> bool:
     """Return True if the given provider/model supports file input."""
     models = AVAILABLE_MODELS.get(provider, [])
@@ -254,15 +324,21 @@ def conditions_page():
     variant = request.args.get('variant', '')
     provider = request.args.get('provider', 'chatgpt')
     model_name = request.args.get('model_name') or default_model(provider)
-    conditions = get_phenotypes_from_omim(gene, variant)
-    if not conditions:
-        conditions = fetch_medline_conditions(gene, variant)
-    summary = ''
-    if conditions:
-        prompt = (
-            'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
-        )
-        summary = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
+    url = f'https://www.omim.org/search?index=entry&start=1&limit=10&sort=score+desc%2C+prefix_sort+desc&search={gene.rstrip().lstrip()}++++{variant.rstrip().lstrip()}'
+    print("Position 1 url:", url)
+    new_url = 'https://www.omim.org' + get_first_mim_result_href(url)
+    response = get_html_as_plain_text(new_url)
+    print("Position 2 response:", response[:100])
+    response = response[:10000]
+    prompt = "Please tell me the phenotypes listed in this text:\n\n"
+    prompt += response
+    conditions = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
+    print("Position 3 conditions:", conditions)
+    prompt = (
+        'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
+    )
+    summary = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
+    print("Position 4 summary:", summary)
     if request.args.get('json') == '1' or request.accept_mimetypes['application/json'] > request.accept_mimetypes['text/html']:
         return jsonify({'conditions': conditions, 'summary': summary})
     return render_template(
