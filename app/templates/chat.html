@@ -43,6 +43,7 @@
     const sessionId = 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2);
     let provider = params.get('provider') || 'chatgpt';
     let model = params.get('model_name') || 'gpt-3.5-turbo';
+    let historySession = `${sessionId}-${provider}-${model}`;
     document.getElementById('info').textContent = `Gene: ${gene}  Variant: ${variant}  Status: ${status}`;
 
     document.getElementById('chat-form').addEventListener('submit', async (e) => {
@@ -59,9 +60,12 @@
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
         let lastHistory = null;
-        const promises = queries.map(([prov, mod]) => {
+        const promises = queries.map(([prov, mod], idx) => {
             provider = prov;
             model = mod;
+            if (idx === 0) {
+                historySession = `${sessionId}-${prov}-${mod}`;
+            }
             const container = document.createElement('div');
             container.className = 'border p-3 mb-3 rounded';
             container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
@@ -70,7 +74,7 @@
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    session_id: sessionId,
+                    session_id: `${sessionId}-${prov}-${mod}`,
                     gene: gene,
                     variant: variant,
                     status: status,
@@ -83,7 +87,9 @@
             .then(resp => resp.json())
             .then(data => {
                 container.querySelector('div').innerHTML = marked.parse(data.response);
-                lastHistory = data.history;
+                if (!lastHistory) {
+                    lastHistory = data.history;
+                }
             })
             .catch(err => {
                 container.querySelector('div').textContent = 'Error: ' + err;
@@ -129,7 +135,7 @@
     });
 
     async function loadHistory() {
-        const resp = await fetch(`/history?session_id=${sessionId}`);
+        const resp = await fetch(`/history?session_id=${historySession}`);
         const data = await resp.json();
         const html = data.history.map(pair => {
             const prompt = marked.parse(pair.prompt);
