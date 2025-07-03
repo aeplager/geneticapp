@@ -131,41 +131,85 @@ def fetch_medline_conditions(gene: str, variant: str) -> list[str]:
 
 
 def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
-    """Return phenotype names from OMIM for the given gene and variant."""
-    api_key = os.getenv("OMIM_API_KEY")
-    if not api_key:
-        return []
-
+    """Return phenotype names from OMIM for the given gene and variant by scraping the OMIM website."""
     query = f"{gene} {variant}".strip()
+    if not query:
+        return []
     try:
-        resp = requests.get(
-            "https://api.omim.org/api/entry",
-            params={
-                "search": query,
-                "include": "geneMap",
-                "format": "json",
-                "apiKey": api_key,
-            },
-            timeout=10,
-        )
+        # 1. Perform search on OMIM website
+        search_url = "https://omim.org/search?index=entry&search=" + requests.utils.requote_uri(query)
+        headers = {"User-Agent": "Mozilla/5.0"}  # use a common User-Agent to avoid blocking
+        resp = requests.get(search_url, headers=headers, timeout=10)
         if resp.status_code != 200:
             return []
-        data = resp.json()
-        entry_list = data.get("omim", {}).get("entryList", [])
+
+        html = resp.text
+
+        # 2. Parse HTML to find if it's an entry page or search results
+        soup = BeautifulSoup(html, "html.parser")
         phenotypes = []
-        for item in entry_list:
-            entry = item.get("entry", {})
-            gene_map = entry.get("geneMap", {})
-            for pheno in gene_map.get("phenotypeMapList", []):
-                name = pheno.get("phenotypeMap", {}).get("phenotype")
-                if name:
-                    phenotypes.append(name)
-        # deduplicate and limit results
-        unique = []
-        for p in phenotypes:
-            if p not in unique:
-                unique.append(p)
-        return unique[:5]
+
+        # Try to find the Gene-Phenotype table directly
+        table = None
+        # Look for the header cell that indicates the phenotype table
+        header_cell = soup.find(lambda tag: tag.name in ["th", "td"] and "Phenotype MIM number" in tag.text)
+        if header_cell:
+            # If we found the header, get the enclosing table
+            table = header_cell.find_parent("table")
+
+        if table is None:
+            # If no table found, we might be on a search results page.
+            # Find link to the gene entry (denoted by gene name or '*')
+            link = None
+            # Strategy: find a result link containing the gene symbol
+            result_links = soup.find_all("a", href=True)
+            for a in result_links:
+                # Check if the link text or href suggests the gene entry
+                # e.g., link text contains gene symbol or href is like "/entry/<OMIMID>"
+                if gene.upper() in a.text.upper() or "/entry/" in a["href"]:
+                    link = a["href"]
+                    # If it looks like an /entry/ link, we take it and break
+                    if "/entry/" in a["href"]:
+                        break
+            if not link:
+                return []
+            # Some links might be relative, ensure full URL
+            if link.startswith("/"):
+                link = "https://omim.org" + link
+            # Fetch the gene entry page
+            resp2 = requests.get(link, headers=headers, timeout=10)
+            if resp2.status_code != 200:
+                return []
+            soup = BeautifulSoup(resp2.text, "html.parser")
+            # Find the phenotype table on this page
+            header_cell = soup.find(lambda tag: tag.name in ["th", "td"] and "Phenotype MIM number" in tag.text)
+            if header_cell:
+                table = header_cell.find_parent("table")
+
+        if table:
+            # 3. Extract phenotype names from the table
+            rows = table.find_all("tr")
+            # Usually first row is header
+            for row in rows[1:]:
+                cells = row.find_all("td")
+                if not cells:
+                    continue
+                # Typically, Phenotype name is the second column (index 1)
+                phenotype_name = cells[1].get_text(separator=" ", strip=True)
+                if phenotype_name:
+                    # Remove any leading '?' indicating provisional relationships
+                    if phenotype_name.startswith('?'):
+                        phenotype_name = phenotype_name[1:].strip()
+                    phenotypes.append(phenotype_name)
+            # Deduplicate while preserving order
+            unique = []
+            for p in phenotypes:
+                if p not in unique:
+                    unique.append(p)
+            return unique[:5]
+        else:
+            # If we didn't find the table, return empty
+            return []
     except Exception:
         return []
 
