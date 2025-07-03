@@ -53,28 +53,27 @@
         document.getElementById('status').textContent = 'Processing the message...';
         const respDiv = document.getElementById('response');
         respDiv.innerHTML = '';
-        for (const [provider, model] of selected) {
+        const promises = selected.map(([provider, model]) => {
             const container = document.createElement('div');
             container.className = 'border p-3 mb-3 rounded';
             container.innerHTML = `<h5>${provider} - ${model}</h5><div>Loading...</div>`;
             respDiv.appendChild(container);
-            try {
-                const fd = new FormData();
-                fd.append('session_id', 'web');
-                fd.append('provider', provider);
-                fd.append('model_name', model);
-                fd.append('message', message);
-                [...fileInput.files].forEach(f => fd.append('files', f));
-                const resp = await fetch('/chat', {
-                    method: 'POST',
-                    body: fd
+            const fd = new FormData();
+            fd.append('session_id', 'web');
+            fd.append('provider', provider);
+            fd.append('model_name', model);
+            fd.append('message', message);
+            [...fileInput.files].forEach(f => fd.append('files', f));
+            return fetch('/chat', { method: 'POST', body: fd })
+                .then(resp => resp.json())
+                .then(data => {
+                    container.querySelector('div').innerHTML = marked.parse(data.response);
+                })
+                .catch(err => {
+                    container.querySelector('div').textContent = 'Error: ' + err;
                 });
-                const data = await resp.json();
-                container.querySelector('div').innerHTML = marked.parse(data.response);
-            } catch (err) {
-                container.querySelector('div').textContent = 'Error: ' + err;
-            }
-        }
+        });
+        await Promise.all(promises);
         document.getElementById('status').textContent = 'API responses received.';
         messageBox.placeholder = '';
         await loadHistory();
