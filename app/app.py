@@ -3,13 +3,6 @@ import os
 import json
 import base64
 import requests
-from typing import List
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 app = Flask(__name__)
 
@@ -139,43 +132,42 @@ def fetch_medline_conditions(gene: str, variant: str) -> list[str]:
 
 def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
     """Return phenotype names from OMIM for the given gene and variant."""
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
+    api_key = os.getenv("OMIM_API_KEY")
+    if not api_key:
+        return []
 
-    driver = webdriver.Chrome(options=options)
+    query = f"{gene} {variant}".strip()
     try:
-        query = f"{gene} {variant}".strip()
-        driver.get("https://www.omim.org/")
-
-        search_box = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "searchField"))
+        resp = requests.get(
+            "https://api.omim.org/api/entry",
+            params={
+                "search": query,
+                "include": "geneMap",
+                "format": "json",
+                "apiKey": api_key,
+            },
+            timeout=10,
         )
-        search_box.send_keys(query)
-        search_box.send_keys(Keys.RETURN)
-
-        first_result = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, ".results .gene-result-title a"))
-        )
-        first_result.click()
-
-        phenotype_rows = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#phenotypeMap .mim-table-row"))
-        )
-
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        entry_list = data.get("omim", {}).get("entryList", [])
         phenotypes = []
-        for row in phenotype_rows:
-            cells = row.find_elements(By.CSS_SELECTOR, ".mim-table-cell")
-            if cells:
-                phenotype = cells[0].text.strip()
-                if phenotype:
-                    phenotypes.append(phenotype)
-        return phenotypes
+        for item in entry_list:
+            entry = item.get("entry", {})
+            gene_map = entry.get("geneMap", {})
+            for pheno in gene_map.get("phenotypeMapList", []):
+                name = pheno.get("phenotypeMap", {}).get("phenotype")
+                if name:
+                    phenotypes.append(name)
+        # deduplicate and limit results
+        unique = []
+        for p in phenotypes:
+            if p not in unique:
+                unique.append(p)
+        return unique[:5]
     except Exception:
         return []
-    finally:
-        driver.quit()
 
 
 def is_multimodal(provider: str, model_name: str) -> bool:
