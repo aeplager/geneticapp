@@ -4,6 +4,7 @@ import json
 import base64
 import requests
 from bs4 import BeautifulSoup
+
 app = Flask(__name__)
 
 # in-memory storage of conversations by session_id
@@ -136,8 +137,13 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
         return []
     try:
         # 1. Perform search on OMIM website
-        search_url = "https://omim.org/search?index=entry&search=" + requests.utils.requote_uri(query)
-        headers = {"User-Agent": "Mozilla/5.0"}  # use a common User-Agent to avoid blocking
+        search_url = (
+            "https://omim.org/search?index=entry&search="
+            + requests.utils.requote_uri(query)
+        )
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }  # use a common User-Agent to avoid blocking
         resp = requests.get(search_url, headers=headers, timeout=10)
         if resp.status_code != 200:
             return []
@@ -151,7 +157,9 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
         # Try to find the Gene-Phenotype table directly
         table = None
         # Look for the header cell that indicates the phenotype table
-        header_cell = soup.find(lambda tag: tag.name in ["th", "td"] and "Phenotype MIM number" in tag.text)
+        header_cell = soup.find(
+            lambda tag: tag.name in ["th", "td"] and "Phenotype MIM number" in tag.text
+        )
         if header_cell:
             # If we found the header, get the enclosing table
             table = header_cell.find_parent("table")
@@ -181,7 +189,10 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
                 return []
             soup = BeautifulSoup(resp2.text, "html.parser")
             # Find the phenotype table on this page
-            header_cell = soup.find(lambda tag: tag.name in ["th", "td"] and "Phenotype MIM number" in tag.text)
+            header_cell = soup.find(
+                lambda tag: tag.name in ["th", "td"]
+                and "Phenotype MIM number" in tag.text
+            )
             if header_cell:
                 table = header_cell.find_parent("table")
 
@@ -197,7 +208,7 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
                 phenotype_name = cells[1].get_text(separator=" ", strip=True)
                 if phenotype_name:
                     # Remove any leading '?' indicating provisional relationships
-                    if phenotype_name.startswith('?'):
+                    if phenotype_name.startswith("?"):
                         phenotype_name = phenotype_name[1:].strip()
                     phenotypes.append(phenotype_name)
             # Deduplicate while preserving order
@@ -212,6 +223,7 @@ def get_phenotypes_from_omim(gene: str, variant: str) -> list[str]:
     except Exception:
         return []
 
+
 def get_first_mim_result_href(url):
     """
     Fetches HTML from a given URL, finds the first <span> with class "mim-result-font",
@@ -225,24 +237,24 @@ def get_first_mim_result_href(url):
     """
     # Define headers to mimic a web browser
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     }
 
     try:
         response = requests.get(url, headers=headers)
-        response.raise_for_status() # Raises HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()  # Raises HTTPError for bad responses (4xx or 5xx)
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, "html.parser")
 
         # Find the first <span> with the class "mim-result-font"
-        target_span = soup.find('span', class_='mim-result-font')
+        target_span = soup.find("span", class_="mim-result-font")
 
         if target_span:
             # Within that span, find the first <a> tag
-            link_tag = target_span.find('a')
+            link_tag = target_span.find("a")
 
-            if link_tag and 'href' in link_tag.attrs:
-                return link_tag['href']
+            if link_tag and "href" in link_tag.attrs:
+                return link_tag["href"]
             else:
                 print("No <a> tag or href attribute found within the specified span.")
                 return None
@@ -257,24 +269,25 @@ def get_first_mim_result_href(url):
         print(f"An unexpected error occurred: {e}")
         return None
 
+
 def get_html_as_plain_text(url):
     """
     Fetches HTML from a given URL and returns its plain text content.
     Includes a User-Agent header to mimic a browser.
     """
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
     }
     try:
         response = requests.get(url, headers=headers)
-        response.raise_for_status() # Raise an exception for HTTP errors
+        response.raise_for_status()  # Raise an exception for HTTP errors
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, "html.parser")
 
         # Use get_text() to extract all text.
         # ' ' as separator often helps retain some readability between elements.
         # strip=True removes leading/trailing whitespace from each line/block.
-        plain_text = soup.get_text(separator='\n', strip=True)
+        plain_text = soup.get_text(separator="\n", strip=True)
         return plain_text
 
     except requests.exceptions.RequestException as e:
@@ -282,8 +295,9 @@ def get_html_as_plain_text(url):
         return None
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return None   
-    
+        return None
+
+
 def is_multimodal(provider: str, model_name: str) -> bool:
     """Return True if the given provider/model supports file input."""
     models = AVAILABLE_MODELS.get(provider, [])
@@ -306,48 +320,50 @@ def default_model(provider: str) -> str:
     return "gpt-3.5-turbo"
 
 
-@app.route('/')
+@app.route("/")
 def index():
     """Simple web UI for chatting with different models."""
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@app.route('/gene')
+@app.route("/gene")
 def gene_page():
     """Page for looking up gene/variant information."""
-    return render_template('gene.html')
+    return render_template("gene.html")
 
 
-@app.route('/conditions')
+@app.route("/conditions")
 def conditions_page():
-    gene = request.args.get('gene', '')
-    variant = request.args.get('variant', '')
-    provider = request.args.get('provider', 'chatgpt')
-    model_name = request.args.get('model_name') or default_model(provider)
-    url = f'https://www.omim.org/search?index=entry&start=1&limit=10&sort=score+desc%2C+prefix_sort+desc&search={gene.rstrip().lstrip()}++++{variant.rstrip().lstrip()}'
-    print("Position 1 url:", url)
-    href = get_first_mim_result_href(url)
-    if not href:
-        return "No OMIM results found", 404
-    new_url = 'https://www.omim.org' + href
-    response = get_html_as_plain_text(new_url)
-    if not response:
-        return "Could not fetch OMIM entry", 500
-    print("Position 2 response:", response[:100])
-    response = response[:10000]
-    prompt = "Please tell me the phenotypes listed in this text:\n\n"
-    prompt += response
-    conditions = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
-    print("Position 3 conditions:", conditions)
-    prompt = (
-        'Summarize the following medical conditions for a patient:\n' + '\n'.join(conditions)
-    )
-    summary = call_model(provider, [{'role': 'user', 'content': prompt}], model_name)
-    print("Position 4 summary:", summary)
-    if request.args.get('json') == '1' or request.accept_mimetypes['application/json'] > request.accept_mimetypes['text/html']:
-        return jsonify({'conditions': conditions, 'summary': summary})
+    gene = request.args.get("gene", "")
+    variant = request.args.get("variant", "")
+    provider = request.args.get("provider", "chatgpt")
+    model_name = request.args.get("model_name") or default_model(provider)
+
+    # Retrieve phenotype/condition names directly from OMIM
+    conditions = get_phenotypes_from_omim(gene, variant)
+
+    # Generate a patient friendly summary using the selected model when
+    # conditions were found.  This keeps the JSON response consistent by
+    # always returning a list for ``conditions``.
+    summary = ""
+    if conditions:
+        prompt = (
+            "Summarize the following medical conditions for a patient:\n"
+            + "\n".join(conditions)
+        )
+        summary = call_model(
+            provider, [{"role": "user", "content": prompt}], model_name
+        )
+
+    if (
+        request.args.get("json") == "1"
+        or request.accept_mimetypes["application/json"]
+        > request.accept_mimetypes["text/html"]
+    ):
+        return jsonify({"conditions": conditions, "summary": summary})
+
     return render_template(
-        'conditions.html',
+        "conditions.html",
         conditions=conditions,
         summary=summary,
         gene=gene,
@@ -355,18 +371,18 @@ def conditions_page():
     )
 
 
-@app.route('/chatpage')
+@app.route("/chatpage")
 def chat_page():
-    gene = request.args.get('gene', '')
-    variant = request.args.get('variant', '')
-    status = request.args.get('status', '')
-    recipient = request.args.get('recipient', 'self')
+    gene = request.args.get("gene", "")
+    variant = request.args.get("variant", "")
+    status = request.args.get("status", "")
+    recipient = request.args.get("recipient", "self")
     return render_template(
-        'chat.html', gene=gene, variant=variant, status=status, recipient=recipient
+        "chat.html", gene=gene, variant=variant, status=status, recipient=recipient
     )
 
 
-@app.route('/models')
+@app.route("/models")
 def list_models():
     """Return the available models for each provider."""
     return jsonify(AVAILABLE_MODELS)
@@ -376,6 +392,7 @@ def call_model(provider: str, messages, model_name: str, files=None):
     """Dispatch call to different LLM providers using a specific model."""
     if provider in ("chatgpt", "gpt-3.5-turbo", "openai"):
         from openai import OpenAI
+
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             return "OpenAI API key not configured"
@@ -395,7 +412,9 @@ def call_model(provider: str, messages, model_name: str, files=None):
             for f in files:
                 b64 = base64.b64encode(f.read()).decode("utf-8")
                 mime = getattr(f, "mimetype", "application/octet-stream")
-                content.append({"type": "image_url", "image_url": f"data:{mime};base64,{b64}"})
+                content.append(
+                    {"type": "image_url", "image_url": f"data:{mime};base64,{b64}"}
+                )
 
             user_msg["content"] = content
             messages = messages[:-1] + [user_msg]
@@ -407,6 +426,7 @@ def call_model(provider: str, messages, model_name: str, files=None):
             return f"OpenAI error: {e}"
     elif provider == "claude":
         import anthropic
+
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             return "Anthropic API key not configured"
@@ -425,7 +445,12 @@ def call_model(provider: str, messages, model_name: str, files=None):
             for f in files:
                 b64 = base64.b64encode(f.read()).decode("utf-8")
                 mime = getattr(f, "mimetype", "application/octet-stream")
-                content.append({"type": "image", "source": {"type": "base64", "media_type": mime, "data": b64}})
+                content.append(
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": mime, "data": b64},
+                    }
+                )
 
             user_msg["content"] = content
             messages = messages[:-1] + [user_msg]
@@ -447,6 +472,7 @@ def call_model(provider: str, messages, model_name: str, files=None):
             return f"Anthropic error: {e}"
     elif provider == "mistral":
         from openai import OpenAI
+
         api_key = os.getenv("MISTRAL_API_KEY")
         if not api_key:
             return "Mistral API key not configured"
@@ -461,6 +487,7 @@ def call_model(provider: str, messages, model_name: str, files=None):
             return f"Mistral error: {e}"
     elif provider == "llama":
         from openai import OpenAI
+
         api_key = os.getenv("LLAMA_API_KEY")
         if not api_key:
             return "LLama API key not configured"
@@ -472,6 +499,7 @@ def call_model(provider: str, messages, model_name: str, files=None):
             return f"LLama error: {e}"
     elif provider == "perplexity":
         from openai import OpenAI
+
         api_key = os.getenv("PERPLEXITY_API_KEY")
         if not api_key:
             return "Perplexity API key not configured"
@@ -488,26 +516,26 @@ def call_model(provider: str, messages, model_name: str, files=None):
         return "Unknown model"
 
 
-@app.route('/gene_chat', methods=['POST'])
+@app.route("/gene_chat", methods=["POST"])
 def gene_chat():
     """Handle gene queries by pulling info from OMIM before calling the LLM."""
     data = request.json or {}
-    session_id = data.get('session_id', 'gene')
-    gene = data.get('gene', '')
-    variant = data.get('variant', '')
-    status = data.get('status', '')
-    recipient = data.get('recipient', 'self')
-    provider = data.get('provider', 'chatgpt')
-    model_name = data.get('model_name') or default_model(provider)
-    question = data.get('question', '')
+    session_id = data.get("session_id", "gene")
+    gene = data.get("gene", "")
+    variant = data.get("variant", "")
+    status = data.get("status", "")
+    recipient = data.get("recipient", "self")
+    provider = data.get("provider", "chatgpt")
+    model_name = data.get("model_name") or default_model(provider)
+    question = data.get("question", "")
 
-    base_prompt = ROLE_PROMPTS.get(recipient, ROLE_PROMPTS['self'])
+    base_prompt = ROLE_PROMPTS.get(recipient, ROLE_PROMPTS["self"])
     gene_info = fetch_omim_info(gene)
 
     history = conversations.setdefault(session_id, [])
     if not history:
         # only include the role instructions once per session
-        history.append({'role': 'system', 'content': base_prompt})
+        history.append({"role": "system", "content": base_prompt})
 
     prompt = (
         f"Gene: {gene}\nVariant: {variant}\n"
@@ -517,76 +545,75 @@ def gene_chat():
     if question:
         prompt += f"\nQuestion: {question}"
 
-    history.append({'role': 'user', 'content': prompt})
+    history.append({"role": "user", "content": prompt})
 
     response_content = call_model(provider, history, model_name)
 
-    history.append({'role': 'assistant', 'content': response_content})
-    return jsonify({'response': response_content, 'history': history[-40:]})
+    history.append({"role": "assistant", "content": response_content})
+    return jsonify({"response": response_content, "history": history[-40:]})
 
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
     files = None
-    if request.content_type and request.content_type.startswith('multipart/form-data'):
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
         data = request.form
-        files = request.files.getlist('files')
+        files = request.files.getlist("files")
     else:
         data = request.json or {}
 
-    session_id = data.get('session_id', 'default')
-    message = data.get('message', '')
-    provider = data.get('provider', data.get('model', 'chatgpt'))
-    model_name = data.get('model_name', data.get('model'))
+    session_id = data.get("session_id", "default")
+    message = data.get("message", "")
+    provider = data.get("provider", data.get("model", "chatgpt"))
+    model_name = data.get("model_name", data.get("model"))
     if not model_name:
         model_name = default_model(provider)
 
     history = conversations.setdefault(session_id, [])
-    history.append({'role': 'user', 'content': message})
+    history.append({"role": "user", "content": message})
 
     response_content = call_model(provider, history, model_name, files=files)
 
-    history.append({'role': 'assistant', 'content': response_content})
-    return jsonify({'response': response_content, 'history': history[-40:]})
+    history.append({"role": "assistant", "content": response_content})
+    return jsonify({"response": response_content, "history": history[-40:]})
 
 
-@app.route('/summarize', methods=['POST'])
+@app.route("/summarize", methods=["POST"])
 def summarize():
     data = request.json or {}
-    session_id = data.get('session_id', 'default')
-    text = data.get('text', '')
-    provider = data.get('provider', data.get('model', 'chatgpt'))
-    model_name = data.get('model_name', data.get('model'))
+    session_id = data.get("session_id", "default")
+    text = data.get("text", "")
+    provider = data.get("provider", data.get("model", "chatgpt"))
+    model_name = data.get("model_name", data.get("model"))
     if not model_name:
         model_name = default_model(provider)
 
     summary_prompt = f"Summarize the following text:\n\n{text}"
 
     history = conversations.setdefault(session_id, [])
-    history.append({'role': 'user', 'content': summary_prompt})
+    history.append({"role": "user", "content": summary_prompt})
 
     response_content = call_model(provider, history, model_name)
 
-    history.append({'role': 'assistant', 'content': response_content})
-    return jsonify({'summary': response_content, 'history': history})
+    history.append({"role": "assistant", "content": response_content})
+    return jsonify({"summary": response_content, "history": history})
 
 
-@app.route('/history', methods=['GET'])
+@app.route("/history", methods=["GET"])
 def get_history():
     """Return the last 20 prompt/response pairs for a session."""
-    session_id = request.args.get('session_id', 'default')
+    session_id = request.args.get("session_id", "default")
     history = conversations.get(session_id, [])
     # Grab the last 40 messages (20 pairs)
     recent = history[-40:]
     pairs = []
     for i in range(0, len(recent), 2):
         if i + 1 < len(recent):
-            pairs.append({
-                'prompt': recent[i]['content'],
-                'response': recent[i + 1]['content']
-            })
-    return jsonify({'history': pairs})
+            pairs.append(
+                {"prompt": recent[i]["content"], "response": recent[i + 1]["content"]}
+            )
+    return jsonify({"history": pairs})
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
