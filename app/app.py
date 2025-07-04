@@ -363,6 +363,7 @@ def logout():
 
 
 @app.route("/")
+@login_required
 def index():
     """Simple web UI for chatting with different models."""
     return render_template("index.html")
