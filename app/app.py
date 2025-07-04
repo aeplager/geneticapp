@@ -339,21 +339,43 @@ def conditions_page():
     provider = request.args.get("provider", "chatgpt")
     model_name = request.args.get("model_name") or default_model(provider)
 
-    # Retrieve phenotype/condition names directly from OMIM
-    conditions = get_phenotypes_from_omim(gene, variant)
+    # Build the OMIM search URL using the gene and variant
+    url = (
+        "https://www.omim.org/search?index=entry&start=1&limit=10"
+        "&sort=score+desc%2C+prefix_sort+desc&search="
+        f"{gene}++++{variant}"
+    )
 
-    # Generate a patient friendly summary using the selected model when
-    # conditions were found.  This keeps the JSON response consistent by
-    # always returning a list for ``conditions``.
-    summary = ""
-    if conditions:
-        prompt = (
-            "Summarize the following medical conditions for a patient:\n"
-            + "\n".join(conditions)
-        )
-        summary = call_model(
+    # Get the first result from the search results page
+    href = get_first_mim_result_href(url)
+    if not href:
+        conditions = []
+        summary = ""
+    else:
+        entry_url = "https://www.omim.org" + href
+        text = get_html_as_plain_text(entry_url) or ""
+        # Ask the model to extract the phenotype names from the page text
+        prompt = "Please tell me the phenotypes listed in this text:\n\n" + text[:10000]
+        response = call_model(
             provider, [{"role": "user", "content": prompt}], model_name
         )
+
+        # Convert the model response into a simple list of conditions
+        conditions = [
+            line.strip("- ")
+            for line in (response or "").splitlines()
+            if line.strip()
+        ]
+
+        summary = ""
+        if conditions:
+            prompt = (
+                "Summarize the following medical conditions for a patient:\n"
+                + "\n".join(conditions)
+            )
+            summary = call_model(
+                provider, [{"role": "user", "content": prompt}], model_name
+            )
 
     if (
         request.args.get("json") == "1"
