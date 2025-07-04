@@ -1,4 +1,12 @@
-from flask import Flask, request, jsonify, render_template
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    render_template,
+    redirect,
+    url_for,
+    session,
+)
 import os
 import json
 import base64
@@ -6,9 +14,23 @@ import requests
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "devkey")
 
 # in-memory storage of conversations by session_id
 conversations = {}
+
+
+def login_required(func):
+    """Decorator to require login for certain routes."""
+    from functools import wraps
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return func(*args, **kwargs)
+
+    return wrapper
 
 # load available models from json file
 MODELS_PATH = os.path.join(os.path.dirname(__file__), "data", "models.json")
@@ -320,6 +342,30 @@ def default_model(provider: str) -> str:
     return "gpt-3.5-turbo"
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        if email == "ariel.brautbar@gmail.com" and password == "Gilat#12":
+            session["logged_in"] = True
+            return redirect(url_for("dashboard"))
+        return render_template("login.html", error="Invalid credentials")
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+
 @app.route("/")
 def index():
     """Simple web UI for chatting with different models."""
@@ -327,12 +373,14 @@ def index():
 
 
 @app.route("/gene")
+@login_required
 def gene_page():
     """Page for looking up gene/variant information."""
     return render_template("gene.html")
 
 
 @app.route("/conditions")
+@login_required
 def conditions_page():
     gene = request.args.get("gene", "")
     variant = request.args.get("variant", "")
@@ -394,6 +442,7 @@ def conditions_page():
 
 
 @app.route("/chatpage")
+@login_required
 def chat_page():
     gene = request.args.get("gene", "")
     variant = request.args.get("variant", "")
