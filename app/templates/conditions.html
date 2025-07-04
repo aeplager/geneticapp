@@ -69,21 +69,44 @@
     document.getElementById('model-form').addEventListener('submit', async e => {
         e.preventDefault();
         const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = '';
         summaryDiv.textContent = 'Loading...';
+
+        const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
+            .map(cb => cb.value.split('|'));
+        const queries = selected.length ? selected : [[provider, model]];
+
+        // use the first selection for navigating to the chat page
+        [provider, model] = queries[0];
+
+        summaryDiv.textContent = '';
+        const promises = queries.map(([prov, mod]) => {
+            const container = document.createElement('div');
+            container.className = 'border p-3 mb-3 rounded';
+            container.innerHTML = `<h5>${prov} - ${mod}</h5><div>Loading...</div>`;
+            summaryDiv.appendChild(container);
+            const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&provider=${encodeURIComponent(prov)}&model_name=${encodeURIComponent(mod)}&json=1`;
+            return fetch(url)
+                .then(resp => resp.json())
+                .then(data => {
+                    let html = '';
+                    if (data.conditions && data.conditions.length) {
+                        html += '<h5>Conditions found on MedlinePlus</h5><ul>' + data.conditions.map(c => `<li>${c}</li>`).join('') + '</ul>';
+                    } else {
+                        html += '<p>No conditions were found for this query.</p>';
+                    }
+                    if (data.summary) {
+                        html += `<h5 class="mt-4">Summary</h5><div>${marked.parse(data.summary)}</div>`;
+                    }
+                    container.querySelector('div').innerHTML = html;
+                })
+                .catch(err => {
+                    container.querySelector('div').textContent = 'Error: ' + err;
+                });
+        });
+
         try {
-            const url = `/conditions?gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&provider=${encodeURIComponent(provider)}&model_name=${encodeURIComponent(model)}&json=1`;
-            const resp = await fetch(url);
-            const data = await resp.json();
-            let html = '';
-            if (data.conditions && data.conditions.length) {
-                html += '<h5>Conditions found on MedlinePlus</h5><ul>' + data.conditions.map(c => `<li>${c}</li>`).join('') + '</ul>';
-            } else {
-                html += '<p>No conditions were found for this query.</p>';
-            }
-            if (data.summary) {
-                html += `<h5 class="mt-4">Summary</h5><div>${marked.parse(data.summary)}</div>`;
-            }
-            summaryDiv.innerHTML = html;
+            await Promise.all(promises);
             document.getElementById('nav-buttons').style.display = 'flex';
         } catch (err) {
             summaryDiv.textContent = 'Error: ' + err;
