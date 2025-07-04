@@ -529,12 +529,14 @@ def call_model(provider: str, messages, model_name: str, files=None):
             messages = messages[1:]
 
         try:
-            resp = client.messages.create(
-                model=model_name,
-                system=system_prompt,
-                messages=messages,
-                max_tokens=1024,
-            )
+            params = {
+                "model": model_name,
+                "messages": messages,
+                "max_tokens": 1024,
+            }
+            if system_prompt is not None:
+                params["system"] = system_prompt
+            resp = client.messages.create(**params)
             return resp.content[0].text
         except Exception as e:
             return f"Anthropic error: {e}"
