@@ -5,7 +5,7 @@
   ],
   "claude": [
     {"name": "claude-3-haiku-20240307", "multimodal": true},
-    {"name": "claude-3-opus-20240229", "multimodal": true}
+    {"name": "claude-sonnet-4-20250514", "multimodal": true}
   ],
   "mistral": [
     {"name": "mistral-tiny", "multimodal": false},
