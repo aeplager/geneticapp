@@ -349,7 +349,7 @@ def login():
         password = request.form.get("password")
         if email == "ariel.brautbar@gmail.com" and password == "Gilat#12":
             session["logged_in"] = True
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("gene_page"))
         return render_template("login.html", error="Invalid credentials")
     return render_template("login.html")
 
@@ -360,10 +360,6 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return render_template("dashboard.html")
 
 
 @app.route("/")
@@ -687,4 +683,5 @@ def get_history():
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=5000)
