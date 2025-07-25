@@ -19,7 +19,7 @@ DATA = {
     "replica_id": TAVUS_REPLICA_ID,
     "conversation_name": "Olivia",
     "persona_id": TAVUS_PERSONA_ID,
-    "custom_greeting": "Hello, Welcome to Legacy Forever",
+    "custom_greeting": "Hello, Welcome to your genetic counseling session.",
     "conversational_context": "",
     "properties": {
         "enable_closed_captions": False,
