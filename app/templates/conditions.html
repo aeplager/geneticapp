@@ -118,8 +118,7 @@
     });
 
     document.getElementById('next-btn').addEventListener('click', () => {
-        const q = new URLSearchParams({gene, variant, status, recipient, provider, model_name: model}).toString();
-        window.location.href = '/chatpage?' + q;
+        window.location.href = '/tavus';
     });
 
     loadModels();
