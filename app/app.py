@@ -474,8 +474,11 @@ def tavus_page():
 def tavus_start():
     """Start a new Tavus conversation."""
     force_new = request.args.get("new") == "1"
+    gene = request.args.get("gene", "")
+    variant = request.args.get("variant", "")
+    status = request.args.get("status", "")
     try:
-        data = start_conversation(force_new=force_new)
+        data = start_conversation(gene=gene, variant=variant, status=status, force_new=force_new)
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

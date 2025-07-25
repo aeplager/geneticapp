@@ -23,7 +23,13 @@
   </div>
   <script src="https://unpkg.com/@daily-co/daily-js"></script>
   <script>
-    fetch('/tavus/start')
+    const params = new URLSearchParams(window.location.search);
+    const gene = params.get('gene') || '';
+    const variant = params.get('variant') || '';
+    const status = params.get('status') || '';
+    const query = `gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&status=${encodeURIComponent(status)}`;
+
+    fetch('/tavus/start?' + query)
       .then(r => r.json())
       .then(data => {
         const transcript = document.getElementById('transcript');

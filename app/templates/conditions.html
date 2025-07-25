@@ -118,7 +118,8 @@
     });
 
     document.getElementById('next-btn').addEventListener('click', () => {
-        window.location.href = '/tavus';
+        const q = `gene=${encodeURIComponent(gene)}&variant=${encodeURIComponent(variant)}&status=${encodeURIComponent(status)}`;
+        window.location.href = '/tavus?' + q;
     });
 
     loadModels();
