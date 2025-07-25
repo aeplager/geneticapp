@@ -12,6 +12,7 @@ import json
 import base64
 import requests
 from bs4 import BeautifulSoup
+from tavus_agent import start_conversation, close_conversation
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "devkey")
@@ -454,6 +455,33 @@ def chat_page():
 def list_models():
     """Return the available models for each provider."""
     return jsonify(AVAILABLE_MODELS)
+
+
+@app.route("/tavus")
+@login_required
+def tavus_page():
+    """Render the Tavus conversational agent page."""
+    return render_template("tavus.html")
+
+
+@app.route("/tavus/start")
+@login_required
+def tavus_start():
+    """Start a new Tavus conversation."""
+    force_new = request.args.get("new") == "1"
+    try:
+        data = start_conversation(force_new=force_new)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/tavus/close")
+@login_required
+def tavus_close():
+    """End the Tavus conversation and go back to the home page."""
+    close_conversation()
+    return redirect(url_for("gene_page"))
 
 
 def call_model(provider: str, messages, model_name: str, files=None):
