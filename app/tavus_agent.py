@@ -20,11 +20,7 @@ DATA = {
     "conversation_name": "Olivia",
     "persona_id": TAVUS_PERSONA_ID,
     "custom_greeting": "Hello, Welcome to Legacy Forever",
-    "conversational_context": (
-        "You are StorySeeker, an engaging, empathetic AI host whose job is to learn about each guest’s life story, passions, and proudest achievements. Speak in a warm, inviting tone. Guide the conversation with open‑ended questions that encourage reflection and storytelling. Be patient, listen actively, and follow up based on the person’s answers. Keep the flow natural—as if chatting over coffee.\n\n"
-        "Opening Greeting:\n\nHello! I’m StorySeeker. I’m excited to hear your story today. Let’s start by getting to know each other—feel free to share as much as you like.\n"
-        "..."  # shortened for brevity
-    ),
+    "conversational_context": "",
     "properties": {
         "enable_closed_captions": False,
         "enable_recording": True,
@@ -39,7 +35,7 @@ API_URL = os.getenv("TAVUS_API_URL", "https://tavusapi.com/v2/conversations")
 _CONVERSATION_CACHE = None
 
 
-def start_conversation(force_new: bool = False):
+def start_conversation(gene: str = "", variant: str = "", status: str = "", force_new: bool = False):
     """Start a conversation using the Tavus API."""
     global _CONVERSATION_CACHE
     if _CONVERSATION_CACHE is not None and not force_new:
@@ -48,7 +44,15 @@ def start_conversation(force_new: bool = False):
     if not TAVUS_API_KEY:
         raise RuntimeError("TAVUS_API_KEY not set")
 
-    response = requests.post(API_URL, headers=HEADERS, json=DATA)
+    context = (
+        "You are a genetic counsellor, empathetic AI host whose job is to answer questions and answers about the gene, variant and status. "
+        f"The gene is {gene}, the variant is {variant}, and the status is {status}. "
+        "Opening Greeting:\n\nHello! I’m your genetic counselor. I’m happy to answer any questions you may have.   Please feel free to ask me questions.\n"
+    )
+
+    payload = {**DATA, "conversational_context": context, "properties": dict(DATA.get("properties", {}))}
+
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
     response.raise_for_status()
     _CONVERSATION_CACHE = response.json()
     return _CONVERSATION_CACHE
