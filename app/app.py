@@ -364,6 +364,11 @@ def logout():
 
 
 @app.route("/")
+def root():
+    """Landing page - redirect to login."""
+    return redirect(url_for("login"))
+
+@app.route("/chat")
 @login_required
 def index():
     """Simple web UI for chatting with different models."""
