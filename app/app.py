@@ -11,6 +11,7 @@ import os
 import json
 import base64
 import requests
+from pathlib import Path
 from bs4 import BeautifulSoup
 from tavus_agent import start_conversation, close_conversation
 
@@ -34,9 +35,20 @@ def login_required(func):
     return wrapper
 
 # load available models from json file
-MODELS_PATH = os.path.join(os.path.dirname(__file__), "data", "models.json")
-with open(MODELS_PATH, "r") as f:
+MODELS_PATH = Path("app/data/models.json")
+with open(MODELS_PATH, "r", encoding="utf-8") as f:
     AVAILABLE_MODELS = json.load(f)
+
+
+def load_models():
+    with open(MODELS_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    options = []
+    for provider, models in data.items():
+        for m in models:
+            name = m.get("name") if isinstance(m, dict) else m
+            options.append({"value": name, "label": name})
+    return options
 
 # recipient specific base prompts used for gene variant explanations
 ROLE_PROMPTS = {
@@ -350,7 +362,7 @@ def login():
         password = request.form.get("password")
         if email == "ariel.brautbar@gmail.com" and password == "Gilat#12":
             session["logged_in"] = True
-            return redirect(url_for("gene_page"))
+            return redirect(url_for("introduction"))
         return render_template("login.html", error="Invalid credentials")
     return render_template("login.html", error=None)
 
@@ -384,10 +396,7 @@ def introduction_get():
         {"value": "likely_benign", "label": "Likely Benign"},
         {"value": "benign", "label": "Benign"},
     ]
-    model_options = [
-        {"value": "gpt-4o", "label": "GPT-4o"},
-        {"value": "gpt-5", "label": "GPT-5"},
-    ]
+    model_options = load_models()
     return render_template(
         "introduction.html",
         form_data={},

@@ -3,3 +3,5 @@
   min-height: 100%;
 }
 .card { border-radius: 12px; }
+
+.intro-wrap { max-width: 1200px; margin-inline: auto; }
