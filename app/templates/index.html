@@ -1,32 +1,31 @@
+{% extends 'base.html' %}
 {% from 'macros.html' import bootstrap_dropdown, bootstrap_check_dropdown %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>LLM Chat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-</head>
-<body>
-<div class="container py-4">
-    <img src="{{ url_for('static', filename='QKSS AI LinkedIn Banner v3.png') }}" alt="QKSS AI banner" class="img-fluid mb-4" />
-    <h1 class="mb-4">LLM Chat</h1>
+{% block title %}LLM Chat{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 class="card-title">LLM Chat</h2>
+    <p class="card-description">Chat with genetic counseling models</p>
     <form id="chat-form" class="vstack gap-3">
-        <div>
+        <div class="form-group">
             <label class="form-label">LLM / Model</label>
             {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
         </div>
-        <div>
+        <div class="form-group">
             <label for="message" class="form-label">Message</label>
-            <textarea id="message" name="message" rows="4" class="form-control"></textarea>
+            <textarea id="message" name="message" rows="4"></textarea>
         </div>
-        <div>
+        <div class="form-group">
             <label for="file" class="form-label">Upload Files (optional)</label>
-            <input type="file" id="file" name="files" multiple class="form-control" />
+            <input type="file" id="file" name="files" multiple />
         </div>
-        <div>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill me-1"></i>Send</button>
+        <div class="form-group">
+            <button type="submit" class="submit-btn">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+                Send
+            </button>
         </div>
     </form>
     <div id="response" class="mt-4"></div>
@@ -34,7 +33,8 @@
     <h2 class="mt-5">History (last 20 prompts and responses)</h2>
     <div id="history" class="vstack gap-4"></div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     let models = {};
@@ -50,7 +50,6 @@
         const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
             .map(cb => cb.value.split('|'));
 
-        // clear the textarea and show a processing indicator
         messageBox.value = '';
         messageBox.placeholder = 'Processing the message...';
         document.getElementById('status').textContent = 'Processing the message...';
@@ -119,9 +118,7 @@
         document.getElementById('history').innerHTML = html;
     }
 
-    // load existing history and model list on page load
     loadModels();
     loadHistory();
 </script>
-</body>
-</html>
+{% endblock %}

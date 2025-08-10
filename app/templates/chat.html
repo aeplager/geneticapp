@@ -1,29 +1,27 @@
+{% extends 'base.html' %}
 {% from 'macros.html' import bootstrap_check_dropdown %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Ask the LLM</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-</head>
-<body>
-<div class="container py-4">
-    <img src="{{ url_for('static', filename='QKSS AI LinkedIn Banner v3.png') }}" alt="QKSS AI banner" class="img-fluid mb-4" />
-    <h1 class="mb-4">Ask the LLM</h1>
-    <p id="info" class="fw-bold"></p>
+{% block title %}Ask the LLM{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Ask the LLM</h2>
+    <p id="info" class="card-description fw-bold"></p>
     <form id="chat-form" class="vstack gap-3">
-        <div>
+        <div class="form-group">
             <label class="form-label">LLM / Model</label>
             {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
         </div>
-        <div>
+        <div class="form-group">
             <label for="message" class="form-label">Message</label>
-            <textarea id="message" name="message" rows="4" class="form-control"></textarea>
+            <textarea id="message" name="message" rows="4"></textarea>
         </div>
-        <div>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill me-1"></i>Send</button>
+        <div class="form-group">
+            <button type="submit" class="submit-btn">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+                Send
+            </button>
         </div>
     </form>
     <div id="response" class="mt-4"></div>
@@ -31,17 +29,18 @@
     <h2 class="mt-5">History (last 20 prompts and responses)</h2>
     <div id="history" class="vstack gap-4"></div>
     <div id="nav-buttons" class="d-flex gap-2 mt-2" style="display:none;">
-        <button type="button" id="back-btn" class="btn btn-secondary">Back</button>
-        <button type="button" id="next-btn" class="btn btn-secondary">Start Conversation</button>
+        <button type="button" id="back-btn" class="submit-btn">Back</button>
+        <button type="button" id="next-btn" class="submit-btn">Start Conversation</button>
     </div>
     <div id="tavus-section" class="mt-5" style="display:none;">
         <h2 class="mb-3">Conversation</h2>
         <div id="conversation" class="mb-3"></div>
         <div id="transcript" class="border rounded p-3 mb-3" style="height:200px; overflow-y:auto;"></div>
-        <button type="button" id="close-convo-btn" class="btn btn-danger">Close Conversation</button>
+        <button type="button" id="close-convo-btn" class="submit-btn">Close Conversation</button>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://unpkg.com/@daily-co/daily-js"></script>
 <script>
@@ -168,7 +167,6 @@
         document.getElementById('history').innerHTML = pairs.join('');
     }
 
-    // load existing history and model list on page load
     loadModels();
     loadHistory();
 
@@ -202,5 +200,4 @@
         window.location.reload();
     });
 </script>
-</body>
-</html>
+{% endblock %}

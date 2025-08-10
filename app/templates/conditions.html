@@ -1,29 +1,27 @@
+{% extends 'base.html' %}
 {% from 'macros.html' import bootstrap_check_dropdown %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Condition Summary</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container py-4">
-    <h1 class="mb-4">Condition Summary</h1>
+{% block title %}Condition Summary{% endblock %}
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Condition Summary</h2>
+    <p class="card-description">Review possible conditions and summaries</p>
     <form id="model-form" class="vstack gap-3">
-        <div>
+        <div class="form-group">
             <label class="form-label">LLM / Model</label>
             {{ bootstrap_check_dropdown('combo', 'Select Models', 'bi-check2-square') }}
         </div>
-        <button type="submit" class="btn btn-primary">Get Summary</button>
+        <div class="form-group">
+            <button type="submit" class="submit-btn">Get Summary</button>
+        </div>
     </form>
     <div id="summary" class="mt-4"></div>
     <div id="nav-buttons" class="d-flex gap-2 mt-2" style="display:none;">
-        <button type="button" id="back-btn" class="btn btn-secondary">Back</button>
-        <button type="button" id="next-btn" class="btn btn-secondary">Next</button>
+        <button type="button" id="back-btn" class="submit-btn">Back</button>
+        <button type="button" id="next-btn" class="submit-btn">Next</button>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     let models = {};
@@ -75,8 +73,6 @@
         const selected = Array.from(document.querySelectorAll('#combo-menu input:checked'))
             .map(cb => cb.value.split('|'));
         const queries = selected.length ? selected : [[provider, model]];
-
-        // use the first selection for navigating to the chat page
         [provider, model] = queries[0];
 
         summaryDiv.textContent = '';
@@ -124,5 +120,4 @@
 
     loadModels();
 </script>
-</body>
-</html>
+{% endblock %}
