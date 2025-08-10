@@ -375,6 +375,28 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/introduction", endpoint="introduction")
+def introduction_get():
+    classification_options = [
+        {"value": "pathogenic", "label": "Pathogenic"},
+        {"value": "likely_pathogenic", "label": "Likely Pathogenic"},
+        {"value": "vus", "label": "Variant of Uncertain Significance"},
+        {"value": "likely_benign", "label": "Likely Benign"},
+        {"value": "benign", "label": "Benign"},
+    ]
+    model_options = [
+        {"value": "gpt-4o", "label": "GPT-4o"},
+        {"value": "gpt-5", "label": "GPT-5"},
+    ]
+    return render_template(
+        "introduction.html",
+        form_data={},
+        errors={},
+        classification_options=classification_options,
+        model_options=model_options,
+    )
+
+
 @app.route("/gene")
 @login_required
 def gene_page():

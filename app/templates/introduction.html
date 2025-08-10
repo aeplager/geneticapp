@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Tell Us About Your Genetics Test{% endblock %}
+
+{% block content %}
+<div class="page-soft-bg">
+  <div class="container py-5">
+    <div class="text-center mb-4">
+      <h1 class="display-6 fw-semibold mb-2">Tell Us About Your Genetics Test</h1>
+      <p class="text-muted mb-0">We’ll help you understand your genetic test results with personalized, compassionate guidance tailored to your situation.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('introduction') }}">
+      {{ csrf_field() if csrf_field is defined }}
+
+      <div class="row g-4 mb-4">
+        <!-- Who is this test for -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Who is this test for?</h5>
+              <p class="text-muted small mb-3">This helps us provide more personalized guidance and advice.</p>
+
+              <fieldset>
+                <legend class="visually-hidden">Recipient</legend>
+                <div class="vstack gap-2">
+                  {% set options = [
+                    ('myself','Myself'),
+                    ('parent','My Parent'),
+                    ('partner','My Partner'),
+                    ('child','My Child'),
+                    ('sibling','My Sibling'),
+                    ('other','Other Family Member')
+                  ] %}
+                  {% for val,label in options %}
+                  <div class="form-check">
+                    <input class="form-check-input {% if errors.recipient %}is-invalid{% endif %}"
+                           type="radio" name="recipient" id="recipient_{{ val }}"
+                           value="{{ val }}" {% if form_data.recipient == val %}checked{% endif %}>
+                    <label class="form-check-label" for="recipient_{{ val }}">{{ label }}</label>
+                  </div>
+                  {% endfor %}
+                  {% if errors.recipient %}
+                    <div class="invalid-feedback d-block">{{ errors.recipient }}</div>
+                  {% endif %}
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+
+        <!-- Genetic Test Report -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Genetic Test Report</h5>
+              <p class="text-muted small mb-3">Do you have your genetic test report available?</p>
+
+              <fieldset class="mb-3">
+                <legend class="visually-hidden">Report availability</legend>
+                <div class="vstack gap-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="has_report" id="has_report_yes"
+                           value="yes" {% if form_data.has_report == 'yes' %}checked{% endif %}>
+                    <label class="form-check-label" for="has_report_yes">Yes, I can upload it</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="has_report" id="has_report_no"
+                           value="no" {% if form_data.has_report == 'no' %}checked{% endif %}>
+                    <label class="form-check-label" for="has_report_no">No, I’ll enter details manually</label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="mb-3">
+                <label for="gene" class="form-label">Gene</label>
+                <input type="text" id="gene" name="gene"
+                       class="form-control {% if errors.gene %}is-invalid{% endif %}"
+                       placeholder="e.g., BRCA1, CFTR, TP53" value="{{ form_data.gene or '' }}">
+                {% if errors.gene %}<div class="invalid-feedback">{{ errors.gene }}</div>{% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label for="variant" class="form-label">Mutation/Variant</label>
+                <textarea id="variant" name="variant" rows="2"
+                          class="form-control {% if errors.variant %}is-invalid{% endif %}"
+                          placeholder="e.g., c.185delAG, p.Arg72Pro">{{ form_data.variant or '' }}</textarea>
+                {% if errors.variant %}<div class="invalid-feedback">{{ errors.variant }}</div>{% endif %}
+              </div>
+
+              <div>
+                <label for="classification" class="form-label">Classification Status</label>
+                <select id="classification" name="classification"
+                        class="form-select {% if errors.classification %}is-invalid{% endif %}">
+                  <option value="" disabled {% if not form_data.classification %}selected{% endif %}>
+                    Select classification
+                  </option>
+                  {% for opt in classification_options %}
+                  <option value="{{ opt.value }}"
+                    {% if form_data.classification == opt.value %}selected{% endif %}>
+                    {{ opt.label }}
+                  </option>
+                  {% endfor %}
+                </select>
+                {% if errors.classification %}<div class="invalid-feedback">{{ errors.classification }}</div>{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Counselor -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Choose Your AI Counselor</h5>
+          <p class="text-muted small mb-3">Select the AI model that will help analyze and explain your results.</p>
+          <div class="col-md-6">
+            <label for="model" class="form-label">Select AI model</label>
+            <select id="model" name="model"
+                    class="form-select {% if errors.model %}is-invalid{% endif %}">
+              {% for opt in model_options %}
+              <option value="{{ opt.value }}"
+                {% if form_data.model == opt.value %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if errors.model %}<div class="invalid-feedback">{{ errors.model }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary btn-lg px-5">Continue to Analysis</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
