@@ -2,27 +2,338 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeneticsCare AI - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="container py-4">
-    <h1 class="mb-4">Login</h1>
-    {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    <form method="post">
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" required>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M11 2a2 2 0 0 0-2 2v6.5a.5.5 0 0 1-.5.5H7a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h1.5a.5.5 0 0 1 .5.5V22a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5.5a.5.5 0 0 1 .5-.5H17a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2h-1.5a.5.5 0 0 1-.5-.5V4a2 2 0 0 0-2-2h-2Z"/>
+                    </svg>
+                </div>
+                <svg class="icon heart-icon" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/>
+                </svg>
+            </div>
+            <h1>GeneticsCare AI</h1>
+            <p class="subtitle">Your trusted genetics counseling companion</p>
         </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required>
+
+        <!-- Login/Signup Card -->
+        <div class="card">
+            <h2 class="card-title" id="cardTitle">Welcome back</h2>
+            <p class="card-description" id="cardDescription">Sign in to access your genetic health insights</p>
+
+            <form id="loginForm" method="post" action="{{ url_for('login') }}">
+                <div class="form-group hidden" id="nameGroup">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name">
+                    <div class="error-message" id="nameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <div class="error-message" id="emailError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-container">
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" id="passwordToggle">
+                            <svg class="icon icon-sm" id="eyeIcon" viewBox="0 0 24 24">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="error-message" id="passwordError"></div>
+                </div>
+
+                <div class="form-group hidden" id="confirmPasswordGroup">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="input-container">
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password">
+                        <button type="button" class="password-toggle" id="confirmPasswordToggle">
+                            <svg class="icon icon-sm" id="eyeIcon2" viewBox="0 0 24 24">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="error-message" id="confirmPasswordError"></div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span id="btnText">Sign In</span>
+                </button>
+            </form>
+
+            <a href="#" class="toggle-link" id="toggleLink">Don't have an account? Sign up</a>
         </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-</div>
+
+        <!-- Medical Disclaimer -->
+        <div class="disclaimer">
+            <strong>Medical Disclaimer:</strong> This AI tool is not a doctor or nurse. 
+            Information provided should be discussed with qualified healthcare professionals.
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast" class="toast">
+        <div class="toast-title" id="toastTitle"></div>
+        <div class="toast-description" id="toastDescription"></div>
+    </div>
+
+    <script>
+        class LoginApp {
+            constructor() {
+                this.isLogin = true;
+                this.isLoading = false;
+                this.formData = {
+                    email: '',
+                    password: '',
+                    confirmPassword: '',
+                    name: ''
+                };
+                this.errors = {};
+                
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+
+            initializeElements() {
+                this.form = document.getElementById('loginForm');
+                this.cardTitle = document.getElementById('cardTitle');
+                this.cardDescription = document.getElementById('cardDescription');
+                this.toggleLink = document.getElementById('toggleLink');
+                this.submitBtn = document.getElementById('submitBtn');
+                this.btnText = document.getElementById('btnText');
+                
+                // Form fields
+                this.nameGroup = document.getElementById('nameGroup');
+                this.confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+                this.nameInput = document.getElementById('name');
+                this.emailInput = document.getElementById('email');
+                this.passwordInput = document.getElementById('password');
+                this.confirmPasswordInput = document.getElementById('confirmPassword');
+                
+                // Password toggles
+                this.passwordToggle = document.getElementById('passwordToggle');
+                this.confirmPasswordToggle = document.getElementById('confirmPasswordToggle');
+                
+                // Error elements
+                this.nameError = document.getElementById('nameError');
+                this.emailError = document.getElementById('emailError');
+                this.passwordError = document.getElementById('passwordError');
+                this.confirmPasswordError = document.getElementById('confirmPasswordError');
+                
+                // Toast
+                this.toast = document.getElementById('toast');
+                this.toastTitle = document.getElementById('toastTitle');
+                this.toastDescription = document.getElementById('toastDescription');
+            }
+
+            attachEventListeners() {
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+                this.toggleLink.addEventListener('click', (e) => this.toggleMode(e));
+                this.passwordToggle.addEventListener('click', () => this.togglePasswordVisibility('password'));
+                this.confirmPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('confirmPassword'));
+                
+                // Real-time validation
+                this.nameInput.addEventListener('input', () => this.clearError('name'));
+                this.emailInput.addEventListener('input', () => this.clearError('email'));
+                this.passwordInput.addEventListener('input', () => this.clearError('password'));
+                this.confirmPasswordInput.addEventListener('input', () => this.clearError('confirmPassword'));
+            }
+
+            validateForm() {
+                this.errors = {};
+                
+                // Email validation
+                if (!this.emailInput.value.trim()) {
+                    this.errors.email = 'Email is required';
+                } else if (!/\S+@\S+\.\S+/.test(this.emailInput.value)) {
+                    this.errors.email = 'Email is invalid';
+                }
+                
+                // Password validation
+                if (!this.passwordInput.value) {
+                    this.errors.password = 'Password is required';
+                } else if (this.passwordInput.value.length < 6) {
+                    this.errors.password = 'Password must be at least 6 characters';
+                }
+                
+                // Name validation for signup
+                if (!this.isLogin && !this.nameInput.value.trim()) {
+                    this.errors.name = 'Full name is required';
+                }
+                
+                // Confirm password validation for signup
+                if (!this.isLogin) {
+                    if (!this.confirmPasswordInput.value) {
+                        this.errors.confirmPassword = 'Please confirm your password';
+                    } else if (this.passwordInput.value !== this.confirmPasswordInput.value) {
+                        this.errors.confirmPassword = 'Passwords do not match';
+                    }
+                }
+                
+                this.displayErrors();
+                return Object.keys(this.errors).length === 0;
+            }
+
+            displayErrors() {
+                // Clear all errors first
+                this.nameError.textContent = '';
+                this.emailError.textContent = '';
+                this.passwordError.textContent = '';
+                this.confirmPasswordError.textContent = '';
+                
+                this.nameInput.classList.remove('error');
+                this.emailInput.classList.remove('error');
+                this.passwordInput.classList.remove('error');
+                this.confirmPasswordInput.classList.remove('error');
+                
+                // Display errors
+                Object.keys(this.errors).forEach(field => {
+                    const errorElement = document.getElementById(`${field}Error`);
+                    const inputElement = document.getElementById(field);
+                    
+                    if (errorElement && inputElement) {
+                        errorElement.textContent = this.errors[field];
+                        inputElement.classList.add('error');
+                    }
+                });
+            }
+
+            clearError(field) {
+                if (this.errors[field]) {
+                    delete this.errors[field];
+                    const errorElement = document.getElementById(`${field}Error`);
+                    const inputElement = document.getElementById(field);
+                    
+                    if (errorElement && inputElement) {
+                        errorElement.textContent = '';
+                        inputElement.classList.remove('error');
+                    }
+                }
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                if (!this.validateForm()) {
+                    this.showToast('Form Error', 'Please fix the errors below', 'error');
+                    return;
+                }
+                
+                if (this.isLogin) {
+                    this.setLoading(true);
+                    this.form.submit();
+                    return;
+                }
+                
+                // Simulate signup API call
+                this.setLoading(true);
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    this.showToast('Account Created', 'Welcome to GeneticsCare AI!', 'success');
+                    setTimeout(() => {
+                        this.toggleMode(new Event('click'));
+                    }, 1000);
+                } catch (error) {
+                    this.showToast('Error', 'Something went wrong. Please try again.', 'error');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                this.isLoading = loading;
+                this.submitBtn.disabled = loading;
+                this.toggleLink.style.opacity = loading ? '0.5' : '1';
+                this.toggleLink.style.pointerEvents = loading ? 'none' : 'auto';
+                
+                if (loading) {
+                    this.btnText.innerHTML = `
+                        <div class="loading-spinner"></div>
+                        ${this.isLogin ? 'Signing In...' : 'Creating Account...'}
+                    `;
+                } else {
+                    this.btnText.textContent = this.isLogin ? 'Sign In' : 'Create Account';
+                }
+            }
+
+            toggleMode(e) {
+                e.preventDefault();
+                if (this.isLoading) return;
+                
+                this.isLogin = !this.isLogin;
+                this.errors = {};
+                
+                // Clear form
+                this.form.reset();
+                this.displayErrors();
+                
+                // Update UI
+                this.updateUI();
+            }
+
+            updateUI() {
+                if (this.isLogin) {
+                    this.cardTitle.textContent = 'Welcome back';
+                    this.cardDescription.textContent = 'Sign in to access your genetic health insights';
+                    this.toggleLink.textContent = "Don't have an account? Sign up";
+                    this.btnText.textContent = 'Sign In';
+                    this.nameGroup.classList.add('hidden');
+                    this.confirmPasswordGroup.classList.add('hidden');
+                } else {
+                    this.cardTitle.textContent = 'Create account';
+                    this.cardDescription.textContent = 'Join us to understand your genetic health better';
+                    this.toggleLink.textContent = 'Already have an account? Sign in';
+                    this.btnText.textContent = 'Create Account';
+                    this.nameGroup.classList.remove('hidden');
+                    this.confirmPasswordGroup.classList.remove('hidden');
+                }
+            }
+
+            togglePasswordVisibility(field) {
+                const input = document.getElementById(field);
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                
+                const toggle = field === 'password' ? this.passwordToggle : this.confirmPasswordToggle;
+                toggle.title = isPassword ? 'Hide password' : 'Show password';
+            }
+
+            showToast(title, description, type = 'success') {
+                this.toastTitle.textContent = title;
+                this.toastDescription.textContent = description;
+                
+                this.toast.className = `toast ${type}`;
+                this.toast.classList.add('show');
+                
+                setTimeout(() => {
+                    this.toast.classList.remove('show');
+                }, 4000);
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new LoginApp();
+            const serverError = {{ error|tojson|default('null') }};
+            if (serverError) {
+                app.showToast('Login Failed', serverError, 'error');
+            }
+        });
+    </script>
 </body>
 </html>

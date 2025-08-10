@@ -50,6 +50,9 @@ Build and run using Docker:
 ```bash
 docker build -t llm-chat .
 docker run -p 5000:5000 --env-file .env llm-chat
+
+docker rm geneticapp ; docker build -t geneticapp . ; if ($LASTEXITCODE -eq 0) { docker run --env-file .env -p 5000:5000 --name geneticapp geneticapp }
+
 ```
 
 Place your API keys in a `.env` file in the project root with values like:
