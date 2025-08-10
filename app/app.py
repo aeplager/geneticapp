@@ -352,7 +352,7 @@ def login():
             session["logged_in"] = True
             return redirect(url_for("gene_page"))
         return render_template("login.html", error="Invalid credentials")
-    return render_template("login.html")
+    return render_template("login.html", error=None)
 
 
 @app.route("/logout")
